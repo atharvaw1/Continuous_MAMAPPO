@@ -97,14 +97,15 @@ class Scenario(BaseScenario):
             comm.append(other.state.c)
             other_pos.append(other.state.p_pos - agent.state.p_pos)
         if not agent.adversary:
-            return np.concatenate([agent.state.p_vel] + [agent.goal_a.state.p_pos - agent.state.p_pos] + [
+            return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + [
                 agent.color] + entity_pos + entity_color + other_pos)
         else:
             # other_pos = list(reversed(other_pos)) if random.uniform(0,1) > 0.5 else other_pos  # randomize position of other agents in adversary network
             # Pad with zeros to get uniform observation space
             return np.concatenate([agent.state.p_vel]
-                                  + [np.zeros_like(temp_agent.goal_a.state.p_pos - temp_agent.state.p_pos)]
-                                  + [np.zeros_like(temp_agent.color)]
+                                  + [agent.state.p_pos]
                                   + entity_pos
+                                  + other_pos
+                                  + [np.zeros_like(temp_agent.color)]
                                   + [np.zeros_like(entity_color[i]) for i in range(len(entity_color))]
-                                  + other_pos)
+                                  )

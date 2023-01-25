@@ -479,7 +479,7 @@ class MaTagWrapper(MaWrapper):
 
         tg_pos = _array_from_dict(actions)
         current_pos = self._get_positions()
-        print(current_pos)
+
         delta_pos = tg_pos - current_pos
         x_actions = np.where(delta_pos[:, 0] > 0, 1, 2)
         x_actions = np.where(np.abs(delta_pos[:, 0]) < self.ma_threshold, 0, x_actions)
@@ -493,10 +493,10 @@ class MaTagWrapper(MaWrapper):
 
         _, reward_x, _, _ = self.env.step(x_actions)
         cost_x = self._get_adv_collisions()
-        # self.env.render()
         self.state, reward_y, done, info = self.env.step(y_actions)
         cost_y = self._get_adv_collisions()
         # self.env.render()
+        # time.sleep(0.1)
 
         reward = reward_x + reward_y
         info['ma_step'] = self.ma_step
@@ -559,7 +559,7 @@ class MaPushWrapper(MaWrapper):
         ma_shape = (2,)  # Each agent has a 2-dim macro action with (x, y) coordinates
         self.ma_space = {k: Box(low=-1, high=1, shape=ma_shape, dtype=np.float32) for k in self.agent_ids}
         self.tg_pos = np.zeros((self.env.n, ma_shape[0]))
-        self.pred_size = 0.15
+        self.pred_size = self.agent_size
 
     def step(self, actions: Dict[str, List[float]]):
         """Perform actions in the environment.
@@ -579,7 +579,6 @@ class MaPushWrapper(MaWrapper):
         current_pos = self._get_positions()
 
         delta_pos = tg_pos - current_pos
-
         x_actions = np.where(delta_pos[:, 0] > 0, 1, 2)
         x_actions = np.where(np.abs(delta_pos[:, 0]) < self.ma_threshold, 0, x_actions)
         y_actions = np.where(delta_pos[:, 1] > 0, 3, 4)
@@ -594,7 +593,8 @@ class MaPushWrapper(MaWrapper):
         cost_x = self._get_agent_collisions() + self._get_adv_collisions()
         self.state, reward_y, done, info = self.env.step(y_actions)
         cost_y = self._get_agent_collisions() + self._get_adv_collisions()
-
+        # self.env.render()
+        # time.sleep(0.1)
         reward = reward_x + reward_y
         info['ma_step'] = self.ma_step
         info['ma_done'] = self.ma_done
@@ -669,6 +669,7 @@ class MaAdversaryWrapper(MaWrapper):
         ma_shape = (2,)  # Each agent has a 2-dim macro action with (x, y) coordinates
         self.ma_space = {k: Box(low=-1, high=1, shape=ma_shape, dtype=np.float32) for k in self.agent_ids}
         self.tg_pos = np.zeros((self.env.n, ma_shape[0]))
+        self.pred_size = self.agent_size
 
     def step(self, actions: Dict[str, List[float]]):
         """Perform actions in the environment.
@@ -703,8 +704,8 @@ class MaAdversaryWrapper(MaWrapper):
         cost_x = self._get_agent_collisions() + self._get_adv_collisions()
         self.state, reward_y, done, info = self.env.step(y_actions)
         cost_y = self._get_agent_collisions() + self._get_adv_collisions()
-        self.env.render()
-        time.sleep(0.1)
+        # self.env.render()
+        # time.sleep(0.1)
 
         reward = reward_x + reward_y
         info['ma_step'] = self.ma_step
