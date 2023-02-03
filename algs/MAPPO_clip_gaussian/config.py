@@ -29,7 +29,7 @@ def parse_args():
 
     # Experiment
     parser.add_argument("--n-steps", type=int, default=500, help="the number of steps between policy updates")
-    parser.add_argument("--tot-steps", type=int, default=1000000, help="total timesteps of the experiments")
+    parser.add_argument("--tot-steps", type=int, default=5000000, help="total timesteps of the experiments")
 
     # Algorithm 
     parser.add_argument("--clip", type=float, default=0.2, help="the surrogate clipping coefficient")

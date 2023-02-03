@@ -590,15 +590,18 @@ class MaPushWrapper(MaWrapper):
         self.ma_step += 1
 
         _, reward_x, _, _ = self.env.step(x_actions)
-        cost_x = self._get_agent_collisions() + self._get_adv_collisions()
+        cost_x = self._get_agent_collisions()
+        cost_x_adv = self._get_adv_collisions()
         self.state, reward_y, done, info = self.env.step(y_actions)
-        cost_y = self._get_agent_collisions() + self._get_adv_collisions()
+        cost_y = self._get_agent_collisions()
+        cost_y_adv =  self._get_adv_collisions()
         # self.env.render()
         # time.sleep(0.1)
         reward = reward_x + reward_y
         info['ma_step'] = self.ma_step
         info['ma_done'] = self.ma_done
         info['cost'] = cost_x + cost_y
+        info['cost_adv'] = cost_x_adv + cost_y_adv
 
         if self.steps >= self.max_steps:
             done = np.ones(self.env.n)
@@ -613,7 +616,7 @@ class MaPushWrapper(MaWrapper):
             collisions (Array[int]): indicator cost signal for collisions
         """
         cost = np.zeros(self.env_params['num_good'])
-        agent_pos = self._get_positions()[self.env_params['num_adversaries']-1:]
+        agent_pos = self._get_positions()[self.env_params['num_adversaries'] - 1:]
         # Count Collisions
         for idx_0 in range(self.env_params['num_good']):
             for idx_1 in range(self.env_params['num_good']):
@@ -640,6 +643,7 @@ class MaPushWrapper(MaWrapper):
                 if dist < self.pred_size:
                     cost[idx_0] += 1
         return cost
+
 
 class MaAdversaryWrapper(MaWrapper):
     """Macro action wrapper for pettingzoo's Simple Adversary env.
@@ -701,9 +705,11 @@ class MaAdversaryWrapper(MaWrapper):
         self.ma_step += 1
 
         _, reward_x, _, _ = self.env.step(x_actions)
-        cost_x = self._get_agent_collisions() + self._get_adv_collisions()
+        cost_x = self._get_agent_collisions()
+        cost_x_adv = self._get_adv_collisions()
         self.state, reward_y, done, info = self.env.step(y_actions)
-        cost_y = self._get_agent_collisions() + self._get_adv_collisions()
+        cost_y = self._get_agent_collisions()
+        cost_y_adv = self._get_adv_collisions()
         # self.env.render()
         # time.sleep(0.1)
 
@@ -711,6 +717,7 @@ class MaAdversaryWrapper(MaWrapper):
         info['ma_step'] = self.ma_step
         info['ma_done'] = self.ma_done
         info['cost'] = cost_x + cost_y
+        info['cost_adv'] = cost_x_adv + cost_y_adv
 
         if self.steps >= self.max_steps:
             done = np.ones(self.env.n)
@@ -725,7 +732,7 @@ class MaAdversaryWrapper(MaWrapper):
             collisions (Array[int]): indicator cost signal for collisions
         """
         cost = np.zeros(self.env_params['num_good'])
-        agent_pos = self._get_positions()[self.env_params['num_adversaries']-1:]
+        agent_pos = self._get_positions()[self.env_params['num_adversaries'] - 1:]
         # Count Collisions
         for idx_0 in range(self.env_params['num_good']):
             for idx_1 in range(self.env_params['num_good']):
