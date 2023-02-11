@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from utils.misc import *
+import gym
 
 def Linear(input_dim, output_dim, act_fn='leaky_relu', init_weight_uniform=True):
     """

@@ -18,7 +18,7 @@ def parse_args():
     # Cooperative: ['MaReferenceWrapper', 'MaSpeakerWrapper', 'MaSpreadWrapper'], 
     # Competitive: ['MaTagWrapper']
     parser.add_argument("--env", type=str, default="MaTagWrapper", help="the name of the gym environment") 
-    parser.add_argument("--n-envs", type=int, default=1, help="n° of envs") 
+    parser.add_argument("--n-envs", type=int, default=1, help="n° of envs")
     parser.add_argument("--seed", type=int, default=1, help="seed of the experiment")
 
     #parser.add_argument("--norm-obs", type=str2bool, default=True, help="Normalize observations")
@@ -59,9 +59,9 @@ def parse_args():
     parser.add_argument("--last-n", type=int, default=100, help="Average metrics over this time horizon")
 
     # wandb
-    parser.add_argument("--wandb-project-name", type=str, default="mpe", help="the wandb's project name")
-    parser.add_argument("--wandb-entity", type=str, default="emarche", help="the entity (team) of wandb's project")
-    parser.add_argument("--wandb-mode", type=str, default="offline", 
+    parser.add_argument("--wandb-project-name", type=str, default="mappo", help="the wandb's project name")
+    parser.add_argument("--wandb-entity", type=str, default="wandile-a", help="the entity (team) of wandb's project")
+    parser.add_argument("--wandb-mode", type=str, default="online",
         help="online or offline wadb mode. if offline,, we'll try to sync immediately after the run")
     parser.add_argument("--wandb-code", type=str2bool, default=False, 
         help="Save code in wandb")
@@ -70,7 +70,7 @@ def parse_args():
     parser.add_argument("--n-cpus", type=int, default=8, help="N° of cpus/max threads for process")
     parser.add_argument("--th-deterministic", type=str2bool, default=True, 
         help="if toggled, `torch.backends.cudnn.deterministic=False`")
-    parser.add_argument("--cuda", type=str2bool, default=True, 
+    parser.add_argument("--cuda", type=str2bool, default=False,
         help="if toggled, cuda will be enabled by default")
 
     args = parser.parse_args()

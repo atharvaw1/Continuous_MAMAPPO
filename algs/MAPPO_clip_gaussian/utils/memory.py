@@ -5,6 +5,7 @@ This manages the memory buffer.
 from copy import deepcopy
    
 from .misc import *
+import gym
 
 @th.jit.script
 def compute_gae(b_values: Tensor, value_: Tensor, b_rewards: Tensor, b_dones: Tensor, gamma: float, gae_lambda: float):   

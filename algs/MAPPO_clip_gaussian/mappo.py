@@ -1,4 +1,8 @@
-import sys; sys.path.append('../..')
+import sys;
+
+from torch import Type
+
+sys.path.append('../..')
 import warnings; warnings.filterwarnings("ignore", category=Warning) 
 import time
 from collections import deque

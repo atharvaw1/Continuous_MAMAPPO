@@ -1,14 +1,13 @@
 import argparse
 import os
-from typing import Tuple, Optional, Dict, Union, List, Type
+from typing import Tuple, Optional, Dict, Union, List
 
-import gym
 import numpy as np
 import torch as th
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
-from envs.ma_mpe_wrappers import MaReferenceWrapper, MaSpeakerWrapper, MaSpreadWrapper, MaTagWrapper
+from envs.mpe.ma_mpe_wrappers import MaReferenceWrapper, MaSpeakerWrapper, MaSpreadWrapper, MaTagWrapper
 
 Tensor = th.Tensor
 Array = np.array

@@ -1,5 +1,7 @@
 import sys
 
+from torch import Type
+
 sys.path.append('../..')
 import warnings
 
@@ -27,11 +29,11 @@ def _get_joint_obs(observations: Dict[str, Tensor]) -> Tensor:
     return th.cat(list(observations.values())).reshape(1, -1)
 
 
-env_ids = {
-    'MaTagWrapper': MaTagWrapper,
-    'MaPushWrapper': MaPushWrapper,
-    'MaAdversaryWrapper': MaAdversaryWrapper,
-}
+# env_ids = {
+#     'MaTagWrapper': MaTagWrapper,
+#     'MaPushWrapper': MaPushWrapper,
+#     'MaAdversaryWrapper': MaAdversaryWrapper,
+# }
 
 if __name__ == "__main__":
     args = config.parse_args()

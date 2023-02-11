@@ -26,8 +26,8 @@ def make_env(scenario_name, **kwargs):
         .action_space       :   Returns the action space for each agent
         .n                  :   Returns the number of Agents
     '''
-    from .mpe.environment import MultiAgentEnv
-    import mpe.scenarios as scenarios
+    from envs.mpe.environment import MultiAgentEnv
+    import envs.mpe.scenarios as scenarios
 
     # load scenario from script
     scenario = scenarios.load(scenario_name + ".py").Scenario()
