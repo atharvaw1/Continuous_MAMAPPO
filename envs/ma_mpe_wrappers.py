@@ -393,17 +393,16 @@ class MaSpreadWrapper(MaWrapper):
         """
         self.steps += 1
         self.ma_step[self.ma_done] = 0  # reset ma step counter if ma ended in the last step
-
         tg_pos = _array_from_dict(actions)
         current_pos = self._get_positions()
-
         delta_pos = tg_pos - current_pos
+
         x_actions = np.where(delta_pos[:, 0] > 0, 1, 2)
         x_actions = np.where(np.abs(delta_pos[:, 0]) < self.ma_threshold, 0, x_actions)
         y_actions = np.where(delta_pos[:, 1] > 0, 3, 4)
         y_actions = np.where(np.abs(delta_pos[:, 1]) < self.ma_threshold, 0, y_actions)
 
-        # A ma ends when the {xy}_actions are 0 
+        # A ma ends when the {xy}_actions are 0
         actions = np.sum(np.stack((x_actions, y_actions), axis=-1), axis=-1)
         self.ma_done = actions == 0
         self.ma_step += 1
@@ -415,7 +414,8 @@ class MaSpreadWrapper(MaWrapper):
         self.state, reward_y, done, info = self.env.step(y_actions)
         cost_y = self._get_collisions()
         reward_y /= self.env.n
-
+        # self.env.render()
+        # time.sleep(0.2)
         reward = reward_x + reward_y
         info['ma_step'] = self.ma_step
         info['ma_done'] = self.ma_done

@@ -3,7 +3,9 @@
 This manages the memory buffer. 
 """
 from copy import deepcopy
-   
+
+import gym
+
 from .misc import *
 
 @th.jit.script

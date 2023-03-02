@@ -7,7 +7,8 @@ import torch as th
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
-from envs.mpe.ma_mpe_wrappers import MaReferenceWrapper, MaSpeakerWrapper, MaSpreadWrapper, MaTagWrapper, MaPushWrapper, MaAdversaryWrapper
+from envs.ma_mpe_wrappers import MaReferenceWrapper, MaSpeakerWrapper, MaSpreadWrapper, \
+                                    MaTagWrapper, MaPushWrapper, MaAdversaryWrapper
 
 Tensor = th.Tensor
 Array = np.array

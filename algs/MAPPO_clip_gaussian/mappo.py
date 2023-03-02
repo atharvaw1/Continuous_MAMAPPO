@@ -85,12 +85,12 @@ if __name__ == "__main__":
                         std[k],
                         a_h[k]
                     ) = actors[k].get_action(observation[k], h=a_h[k])
+
                     
                 j_observation = _get_joint_obs(observation)
                 s_value, c_h = critic(j_observation, h=c_h)  
 
             # env.render()
-
             observation_, reward, done, info = env.step(_to_dict_clip_array(action, a_low, a_high))    
             
             reward = _array_to_dict_tensor(agents, reward, device)
