@@ -51,7 +51,6 @@ def parse_args():
     parser.add_argument("--anneal-lr", type=str2bool, default=True,
         help="Toggle learning rate annealing for policy and value networks")
     parser.add_argument("--n-epochs", type=int, default=10, help="the epochs to update the policy")
-    # TODO
     parser.add_argument("--norm-adv", type=str2bool, default=True,
         help="Toggles advantages normalization")
     parser.add_argument("--max-grad-norm", type=float, default=1.,

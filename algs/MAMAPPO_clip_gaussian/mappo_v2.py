@@ -24,10 +24,13 @@ def _to_dict_clip_array(dict: Dict, min: List[float], max: List[float]) -> Dict:
     return {k: np.array(v).clip(min[k], max[k]) for k, v in dict.items()}
 
 
-def _array_to_dict_tensor(agents: List[str], data: Array, device: th.device, prev_ma: Dict = None,astype: Type = th.float32) -> Dict:
+def _array_to_dict_tensor(agents: List[str], data: Array, device: th.device, prev_ma: Dict = None,
+                          astype: Type = th.float32) -> Dict:
     if prev_ma:
-        return {k: th.as_tensor([np.concatenate([d,prev_ma[k][0]])], dtype=astype).to(device) for k, d in zip(agents, data)}
+        return {k: th.as_tensor([np.concatenate([d, prev_ma[k][0]])], dtype=astype).to(device) for k, d in
+                zip(agents, data)}
     return {k: th.as_tensor([d], dtype=astype).to(device) for k, d in zip(agents, data)}
+
 
 def _get_joint_obs(observations: Dict[str, Tensor]) -> Tensor:
     return th.cat(list(observations.values())).reshape(1, -1)
@@ -121,7 +124,6 @@ if __name__ == "__main__":
                         j_observation[k] = _get_joint_obs(ma_observation)
                         ma_value[k], c_h_[k] = critics[k](j_observation[k], h=c_h[k])
 
-
             observation_, reward, done, info = env.step(_to_dict_clip_array(ma_action, a_low, a_high))
 
             ma_done = _array_to_dict_tensor(agents, info['ma_done'], device)
@@ -150,7 +152,7 @@ if __name__ == "__main__":
                     c_h[k] = c_h_[k]
 
             prev_ma_action = ma_action
-            observation = _array_to_dict_tensor(agents, observation_,device,prev_ma_action)
+            observation = _array_to_dict_tensor(agents, observation_, device, prev_ma_action)
 
             # Consider the metrics in the first agent as its fully cooperative
             ep_reward += reward[agents[0]].numpy()
