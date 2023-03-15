@@ -410,12 +410,13 @@ class MaSpreadWrapper(MaWrapper):
         _, reward_x, _, _ = self.env.step(x_actions)
         cost_x = self._get_collisions()
         reward_x /= self.env.n  # Because we have joint rew and the env is still summing agents' rewards
-
+        self.env.render()
+        time.sleep(0.2)
         self.state, reward_y, done, info = self.env.step(y_actions)
         cost_y = self._get_collisions()
         reward_y /= self.env.n
-        # self.env.render()
-        # time.sleep(0.2)
+        self.env.render()
+        time.sleep(0.2)
         reward = reward_x + reward_y
         info['ma_step'] = self.ma_step
         info['ma_done'] = self.ma_done

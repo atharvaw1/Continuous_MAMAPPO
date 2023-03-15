@@ -25,7 +25,7 @@ def parse_args():
     #parser.add_argument("--norm-rew", type=str2bool, default=False, help="Normalize rewards")
 
     # Environment setup
-    parser.add_argument("--max-steps", type=int, default=50, help="Max n° of steps per episode")
+    parser.add_argument("--max-steps", type=int, default=25, help="Max n° of steps per episode")
 
     # Experiment
     parser.add_argument("--n-steps", type=int, default=500, help="the number of steps between policy updates")

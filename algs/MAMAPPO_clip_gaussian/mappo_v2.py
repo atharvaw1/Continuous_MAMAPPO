@@ -24,9 +24,10 @@ def _to_dict_clip_array(dict: Dict, min: List[float], max: List[float]) -> Dict:
     return {k: np.array(v).clip(min[k], max[k]) for k, v in dict.items()}
 
 
-def _array_to_dict_tensor(agents: List[str], data: Array, device: th.device, astype: Type = th.float32) -> Dict:
+def _array_to_dict_tensor(agents: List[str], data: Array, device: th.device, prev_ma: Dict = None,astype: Type = th.float32) -> Dict:
+    if prev_ma:
+        return {k: th.as_tensor([np.concatenate([d,prev_ma[k][0]])], dtype=astype).to(device) for k, d in zip(agents, data)}
     return {k: th.as_tensor([d], dtype=astype).to(device) for k, d in zip(agents, data)}
-
 
 def _get_joint_obs(observations: Dict[str, Tensor]) -> Tensor:
     return th.cat(list(observations.values())).reshape(1, -1)
@@ -74,8 +75,9 @@ if __name__ == "__main__":
                 c_opt.param_groups[0]["lr"] = frac * args.critic_lr
 
         # Environment reset
-        observation = _array_to_dict_tensor(agents, env.reset(), device)
-        print(observation)
+        prev_ma_action = {k: th.empty((args.n_envs, env.ma_space[k].shape[0])) for k in agents}
+        observation = _array_to_dict_tensor(agents, env.reset(), device, prev_ma_action)
+
         ma_observation = deepcopy(observation)
         j_observation = {}
         ma_action = {k: th.empty((args.n_envs, env.ma_space[k].shape[0])) for k in agents}
@@ -92,11 +94,9 @@ if __name__ == "__main__":
         ma_count = {k: th.zeros(args.n_envs) for k in agents}
 
         ep_reward, ep_cost, ep_step, ep_macro = 0, 0, 0, 0
-
         while any(np.sum(list(ma_count.values())) < args.n_steps):
             global_step += 1 * args.n_envs
             ep_step += 1
-
             with th.no_grad():
                 for k in agents:
                     if ma_done[k]:
@@ -120,6 +120,7 @@ if __name__ == "__main__":
                     if ma_done[k]:
                         j_observation[k] = _get_joint_obs(ma_observation)
                         ma_value[k], c_h_[k] = critics[k](j_observation[k], h=c_h[k])
+
 
             observation_, reward, done, info = env.step(_to_dict_clip_array(ma_action, a_low, a_high))
 
@@ -148,7 +149,8 @@ if __name__ == "__main__":
                     a_h[k] = a_h_[k]
                     c_h[k] = c_h_[k]
 
-            observation = _array_to_dict_tensor(agents, observation_, device)
+            prev_ma_action = ma_action
+            observation = _array_to_dict_tensor(agents, observation_,device,prev_ma_action)
 
             # Consider the metrics in the first agent as its fully cooperative
             ep_reward += reward[agents[0]].numpy()
@@ -190,7 +192,8 @@ if __name__ == "__main__":
                           )
 
                 ep_step, ep_reward, ep_cost, ep_macro = 0, 0, 0, 0
-                observation = _array_to_dict_tensor(agents, env.reset(), device)
+                prev_ma_action = {k: th.empty((args.n_envs, env.ma_space[k].shape[0])) for k in agents}
+                observation = _array_to_dict_tensor(agents, env.reset(), device, prev_ma_action)
                 a_h = {k: th.zeros((1, args.h_size)) for k in agents}
                 c_h = {k: th.zeros((1, args.h_size)) for k in agents}
                 ma_done = {k: th.ones(args.n_envs) for k in agents}

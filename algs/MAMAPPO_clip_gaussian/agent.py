@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from utils.misc import *
 
 
-def Linear(input_dim, output_dim, act_fn='leaky_relu', init_weight_uniform=True):
+def Linear(input_dim, output_dim, act_fn='tanh', init_weight_uniform=True):
     """
     Creat a linear layer.
 
@@ -37,18 +37,20 @@ class GaussianActor(nn.Module):
 
         o_space, a_space = env.observation_space[agents[0]], env.ma_space[agents[0]]
 
+        # self.hidden_1 = Linear(int(np.prod(o_space.shape)+ np.prod(a_space.shape)), h_size)
         self.hidden_1 = Linear(int(np.prod(o_space.shape)), h_size)
         self.gru_1 = nn.GRU(h_size, h_size, batch_first=True)
         self.hidden_2 = Linear(h_size, h_size)
-        self.output = Linear(h_size, int(np.prod(a_space.shape)), act_fn='leaky_relu')
+        self.output = Linear(h_size, int(np.prod(a_space.shape)), act_fn='tanh')
 
-        self.logstd = nn.Parameter(-th.ones(int(np.prod(a_space.shape))))
+        # self.logstd = nn.Parameter(-th.ones(int(np.prod(a_space.shape))))
+        self.logstd = nn.Parameter(-th.zeros(int(np.prod(a_space.shape))))
 
     def forward(self, x, h=None):
-        x = F.leaky_relu(self.hidden_1(x))
+        x = F.tanh(self.hidden_1(x))
         x, h_ = self.gru_1(x, h)
-        x = F.leaky_relu(self.hidden_2(x))
-        x = F.leaky_relu(self.output(x))
+        x = F.tanh(self.hidden_2(x))
+        x = F.tanh(self.output(x))
         return x, h_
 
     def get_action(self, x, y=None, h=None):
@@ -65,6 +67,7 @@ class Critic(nn.Module):
     def __init__(self, env, agents: List[str], h_size: int, n_hidden: int):
         super().__init__()
 
+        # o_size = (env.observation_space[agents[0]].shape[0] + env.ma_space[agents[0]].shape[0]) * len(agents)
         o_size = env.observation_space[agents[0]].shape[0] * len(agents)
         self.hidden_1 = Linear(o_size, h_size)
         self.gru_1 = nn.GRU(h_size, h_size, batch_first=True)
@@ -72,8 +75,8 @@ class Critic(nn.Module):
         self.output = Linear(h_size, 1, act_fn='linear')
 
     def forward(self, x, h=None):
-        x = F.leaky_relu(self.hidden_1(x))
+        x = F.tanh(self.hidden_1(x))
         x, h_ = self.gru_1(x, h)
-        x = F.leaky_relu(self.hidden_2(x))
+        x = F.tanh(self.hidden_2(x))
         x = self.output(x)
         return x, h_

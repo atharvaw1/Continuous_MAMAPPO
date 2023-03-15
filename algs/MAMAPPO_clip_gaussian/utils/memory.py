@@ -43,9 +43,10 @@ class Buffer:
         self.o_space, self.a_space = env.observation_space[agents[0]], env.ma_space[agents[0]]
 
         self.b_obervations = th.zeros((self.size, self.o_space.shape[0])).to(device)
-
+        # self.b_obervations = th.zeros((self.size, self.o_space.shape[0] + self.a_space.shape[0])).to(device)
         j_obs_dim = self.o_space.shape[0] * len(agents)
-        if good_agent: j_obs_dim = self.o_space.shape[0]
+        # j_obs_dim = (self.o_space.shape[0] + self.a_space.shape[0]) * len(agents)
+        if good_agent: j_obs_dim = (self.o_space.shape[0] + self.a_space.shape[0]) #j_obs_dim = self.o_space.shape[0]
         self.b_j_obervations = th.zeros((self.size, j_obs_dim)).to(device)
         self.b_actions = th.zeros((self.size, self.a_space.shape[0])).to(device)
         self.b_means = deepcopy(self.b_actions)

@@ -25,11 +25,14 @@ def parse_args():
     #parser.add_argument("--norm-rew", type=str2bool, default=False, help="Normalize rewards")
 
     # Environment setup
-    parser.add_argument("--max-steps", type=int, default=50, help="Max n° of steps per episode")
+    parser.add_argument("--max-steps", type=int, default=25, help="Max n° of steps per episode")
 
     # Experiment
     parser.add_argument("--n-steps", type=int, default=500, help="the number of steps between policy updates")
     parser.add_argument("--tot-steps", type=int, default=5000000, help="total timesteps of the experiments")
+    parser.add_argument("--model-checkpoint", type=str2bool, default=False, help="Save model weights during training")
+    parser.add_argument("--model-checkpoint-interval", type=int, default=150_000,
+                        help="number of steps between model checkpoints")
 
     # Algorithm 
     parser.add_argument("--clip", type=float, default=0.2, help="the surrogate clipping coefficient")
@@ -48,6 +51,7 @@ def parse_args():
     parser.add_argument("--anneal-lr", type=str2bool, default=True,
         help="Toggle learning rate annealing for policy and value networks")
     parser.add_argument("--n-epochs", type=int, default=10, help="the epochs to update the policy")
+    # TODO
     parser.add_argument("--norm-adv", type=str2bool, default=True,
         help="Toggles advantages normalization")
     parser.add_argument("--max-grad-norm", type=float, default=1.,
