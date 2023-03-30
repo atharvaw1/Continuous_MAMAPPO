@@ -394,9 +394,12 @@ class MaSpreadWrapper(MaWrapper):
         self.steps += 1
         self.ma_step[self.ma_done] = 0  # reset ma step counter if ma ended in the last step
         tg_pos = _array_from_dict(actions)
+        # tg_pos = np.array([[1,-1] for i in range(3)])
+
         current_pos = self._get_positions()
         delta_pos = tg_pos - current_pos
-
+        # TODO: Make null actions into actual actions
+        # TODO: Eval without std deviation
         x_actions = np.where(delta_pos[:, 0] > 0, 1, 2)
         x_actions = np.where(np.abs(delta_pos[:, 0]) < self.ma_threshold, 0, x_actions)
         y_actions = np.where(delta_pos[:, 1] > 0, 3, 4)
