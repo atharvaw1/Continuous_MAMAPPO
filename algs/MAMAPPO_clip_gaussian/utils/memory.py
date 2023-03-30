@@ -13,7 +13,7 @@ def _get_pad_and_mask_from_obs(observations):
    
     return zeropad_observations, ~th.isnan(nanpad_observations).any(-1)
 
-def compute_gae(idx: int, b_values: Tensor, value_: Tensor, b_rewards: Tensor, b_dones: Tensor, gamma: float, gae_lambda: float): 
+def compute_gae(idx: int, b_values: Tensor, value_: Tensor, b_rewards: Tensor, b_gammas: Tensor, b_dones: Tensor, gamma: float, gae_lambda: float): 
 
     values_ = th.cat((b_values[1:idx], value_))
    
@@ -31,13 +31,13 @@ def compute_gae(idx: int, b_values: Tensor, value_: Tensor, b_rewards: Tensor, b
     return returns, advantages
 
 #@th.jit.script
-def _discount_cumsum(idx: int, b_values: Tensor, value_: Tensor, b_rewards: Tensor, b_dones: Tensor, gamma: float, gae_lambda: float):
+def _discount_cumsum(idx: int, b_values: Tensor, value_: Tensor, b_rewards: Tensor, b_gammas: Tensor, b_dones: Tensor, gamma: float, gae_lambda: float):
     returns = th.zeros_like(b_values[:idx])
-   
     returns[-1] = value_
-   
+
     for t in range(returns.shape[0] - 2, -1, -1):
-        returns[t] = b_rewards[:idx][t] + gamma * (1 - b_dones[:idx][t]) * returns[t+1]
+        # gamma is wrong due to the temporal abstraction?
+        returns[t] = b_rewards[:idx][t] + gamma * b_gammas[:idx][t] * (1 - b_dones[:idx][t]) * returns[t+1]
 
     advantages = returns - b_values[:idx]
     return returns, advantages
@@ -62,6 +62,7 @@ class Buffer:
         self.b_stds = deepcopy(self.b_actions)
         self.b_logprobs = th.zeros(self.size, dtype=th.float32).to(device)
         self.b_rewards = deepcopy(self.b_logprobs)
+        self.b_gammas = deepcopy(self.b_logprobs)
         self.b_values = deepcopy(self.b_logprobs)
         self.b_dones = deepcopy(self.b_logprobs)
 
@@ -75,7 +76,7 @@ class Buffer:
 
         self.device = device
 
-    def store(self, observation, j_observation, action, mean, std, logprob, reward, value, done):
+    def store(self, observation, j_observation, action, mean, std, logprob, reward, gamma, value, done):
         self.b_observations[self.idx] = observation  
         self.b_j_obervations[self.idx] = j_observation      
         self.b_actions[self.idx] = action
@@ -83,6 +84,7 @@ class Buffer:
         self.b_stds[self.idx] = std
         self.b_logprobs[self.idx] = logprob
         self.b_rewards[self.idx] = reward
+        self.b_gammas[self.idx] = gamma
         self.b_values[self.idx] = value
         self.b_dones[self.idx] = done
         self.idx += 1
@@ -96,7 +98,7 @@ class Buffer:
         (
             self.returns, 
             self.advantages 
-        ) = mc(self.idx, self.b_values, value_, self.b_rewards, self.b_dones, self.gamma, self.gae_lambda)
+        ) = mc(self.idx, self.b_values, value_, self.b_rewards, self.b_gammas, self.b_dones, self.gamma, self.gae_lambda)
 
     '''    
     def sample(self):

@@ -153,6 +153,7 @@ if __name__ == "__main__":
                         ma_std[k], 
                         ma_logprob[k], 
                         ma_reward[k], 
+                        ma_gamma[k],
                         ma_value[k], 
                         done[k]   
                     )
@@ -194,9 +195,6 @@ if __name__ == "__main__":
                         f"Macro: {ep_macro},\n\t "
                         f"Global_Step: {global_step},\n\t "
                     )
-
-                if ep_count == 20:
-                    break
                 
                 ep_step, ep_reward, ep_cost, ep_macro = 0, 0, 0, 0
                 observation = _array_to_dict_tensor(agents, deepcopy(env.reset()), device)
@@ -243,7 +241,6 @@ if __name__ == "__main__":
                 _, logprob, entropy, _, _, _ = actors[k].get_action(b['observations'], b['actions'])
 
                 entropy_loss = entropy[b['mask_actions']].mean()     
-                
                 logratio = logprob[b['mask_actions']] - b['logprobs']  
                 ratio = logratio.exp()  
             
@@ -252,11 +249,13 @@ if __name__ == "__main__":
                     mb_advantages = normalize(mb_advantages)
 
                 actor_loss = mb_advantages * ratio
+
                 actor_clip_loss = mb_advantages * th.clamp(ratio, 1 - args.clip, 1 + args.clip)
                 actor_loss = th.min(actor_loss, actor_clip_loss).mean()              
-                    
+
+            
                 actor_loss = -actor_loss - args.ent_coef * entropy_loss
-                
+
                 a_optim[k].zero_grad(True)
                 actor_loss.backward()
                 nn.utils.clip_grad_norm_(actors[k].parameters(), args.max_grad_norm)
@@ -268,13 +267,16 @@ if __name__ == "__main__":
                         if approx_kl > args.target_kl:
                             print(f"Policy updates break at epoch: {epoch}")
                             break
-            
-            if args.wandb_log: wandb.log({f'Actor loss {k}': float(actor_loss)})
+           
+            if args.wandb_log: 
+               
+                wandb.log({f'Actor loss {k}': float(actor_loss), f'Actor std {k} - Action 0': float(th.exp(actors[k].logstd[0])), f'Actor std {k} - Action 1': float(th.exp(actors[k].logstd[1])), f'Actor entropy {k}': float(entropy_loss)})
+
 
             for epoch in range(args.vf_epochs):
                 values, _ = critics[k](b['j_observations'])
                 values = values.squeeze()[b['mask_j_observations']]
-
+              
                 critic_loss = 0.5 * ((values - b['returns']) ** 2).mean()
                 critic_loss = critic_loss * args.v_coef
                
