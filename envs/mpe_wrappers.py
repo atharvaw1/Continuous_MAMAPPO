@@ -34,12 +34,11 @@ def make_env(scenario_name, **kwargs):
     # create world
     world = scenario.make_world(**kwargs)
     # create multiagent environment
-    env = MultiAgentEnv(world, kwargs['max_steps'], scenario.reset_world, scenario.reward, scenario.observation, scenario.collision, discrete_action_space=True)
-
+    env = MultiAgentEnv(world, kwargs['max_steps'], scenario.reset_world, scenario.reward, scenario.observation, scenario.collision, discrete_action_space=False)
     return env
 
-class MaWrapper(ABC):
-    """Macro action wrapper for pettingzoo's env."""
+class MultiAgentWrapper(ABC):
+    """Wrapper for primitive pettingzoo's env."""
 
     def __init__(self, env_id: str, seed: int = 0, **kwargs) -> None:
         """
@@ -57,8 +56,8 @@ class MaWrapper(ABC):
 
         self.agent_ids = [agent.name for agent in self.env.agents]
 
-        self.steps, self.max_steps = 0, kwargs['max_steps']
-        self.ma_threshold = 0.05  # threshold for waypoint reaching
+        self.steps = 0
+        self.ma_threshold = 0.1  # threshold for waypoint reaching
         self.agent_size = 0.1
         self.ma_step = np.zeros(self.env.n)
         self.ma_done = np.ones(self.env.n, dtype=bool)
@@ -143,7 +142,8 @@ class MaWrapper(ABC):
         """
         return self.env.n
 
-class MaSpreadWrapper(MaWrapper):
+
+class SpreadWrapper(MultiAgentWrapper):
     """Macro action wrapper for pettingzoo's Simple Spread env.
     
     Observations [self_vel (2), self_pos (2), landmark_rel_positions (2*3), other_agent_rel_positions (2*2)]
@@ -166,10 +166,6 @@ class MaSpreadWrapper(MaWrapper):
         self.env_params = {'num_agents': 3, 'num_landmarks': 3, 'max_steps': max_steps}
         super().__init__('simple_spread', seed, **self.env_params)
 
-        ma_shape = (2,)  # Each agent has a 2-dim macro action with (x, y) coordinates
-        self.ma_space = {k: Box(low=-1, high=1, shape=ma_shape, dtype=np.float32) for k in self.agent_ids}
-        self.tg_pos = np.zeros((self.env.n, ma_shape[0]))
-
     def step(self, actions: Dict[str, List[float]]):
         """Perform actions in the environment.
 
@@ -183,50 +179,7 @@ class MaSpreadWrapper(MaWrapper):
         """
 
         self.steps += 1
-        self.ma_step[self.ma_done] = 0  # reset ma step counter if ma ended in the last step
-        tg_pos = _array_from_dict(actions)
-        current_pos = self._get_positions()
-        delta_pos = tg_pos - current_pos
-
-        #print(f"Delta pos: {delta_pos}")
-        x_actions = np.where(delta_pos[:, 0] < 0, 1, 2)
-        x_actions = np.where(np.abs(delta_pos[:, 0]) < self.ma_threshold, 0, x_actions)
-        y_actions = np.where(delta_pos[:, 1] < 0, 3, 4)
-        y_actions = np.where(np.abs(delta_pos[:, 1]) < self.ma_threshold, 0, y_actions)
-
-        #print(f"Chosen waypoint: {actions}")
-        # A ma ends when the {xy}_actions are 0
-        actions = np.sum(np.stack((x_actions, y_actions), axis=-1), axis=-1)
-
-        #print(f"Sum discrete action: {actions}")
-        #print(f"Action x: {x_actions}")
-        #print(f"Action y: {y_actions}")
-
-        self.ma_done = actions == 0
-        self.ma_step += 1
-
-        # If an agent doesn't have to move on x, it should move on y because otherwise it biases the reward
-        _, reward_x, _, info_x = self.env.step(x_actions)
-        #print(f"Step size x: {s[0][2:4] - current_pos[0]}")
-        #self.env.render()
-        #print(f"Macro action done: {self.ma_done}")
-        #input()
-        #reward_x /= self.env.n  # Because we have joint rew and the env is still summing agents' rewards
-        #self.env.render()
-
-        self.state, reward_y, done, info = self.env.step(y_actions)
-        #time.sleep(0.2)
-        #print(self.state[0][2:4])
-        #print(s[0][2:4])
-        #print(f"Step size y: {self.state[0][2:4] - s[0][2:4]}")
-        #reward_y /= self.env.n
-        #self.env.render()
-        #time.sleep(0.2)
-        
-        reward = reward_x + reward_y
       
-        info['ma_step'] = self.ma_step
-        info['ma_done'] = self.ma_done
-        info['cost'] += info_x['cost']
+        self.state, reward, done, info = self.env.step(list(actions.values()))
 
         return self.state, reward, done, info

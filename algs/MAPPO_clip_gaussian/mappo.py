@@ -15,7 +15,7 @@ from utils.misc import *
 from utils.memory import Buffer
 
 def _to_dict_clip_array(dict: Dict, min: List[float], max: List[float]) -> Dict:
-    return {k: np.array(v).clip(min[k], max[k]) for k, v in dict.items()}
+    return {k: np.array(v).clip(min[k], max[k]).squeeze() for k, v in dict.items()}
 
 def _array_to_dict_tensor(agents: List[str], data: Array, device: th.device, astype: Type = th.float32) -> Dict:
     return {k: th.as_tensor([d], dtype=astype).to(device) for k, d in zip(agents, data)}
@@ -38,9 +38,9 @@ if __name__ == "__main__":
     env = env_ids[args.env](args.seed, args.max_steps)
 
     agents = env.agent_ids    
-    a_low = {k: space.low for k, space in env.ma_space.items()}
-    a_high = {k: space.high for k, space in env.ma_space.items()}
-
+    a_low = {k: space.low for k, space in env.action_space.items()}
+    a_high = {k: space.high for k, space in env.action_space.items()}
+   
     # Actor-Critics setup
     actors, a_optim, buffers = {}, {}, {}
     params = []
@@ -69,7 +69,7 @@ if __name__ == "__main__":
         observation = _array_to_dict_tensor(agents, env.reset(), device)
         action, logprob, mean, std = [{k: 0 for k in agents} for _ in range(4)]
         a_h = {k: th.zeros((1, args.h_size)) for k in agents} 
-        c_h =  th.zeros((1, args.h_size))
+        c_h = th.zeros((1, args.h_size))
         ep_reward, ep_cost = 0, 0
 
         for step in range(args.n_steps):
@@ -90,9 +90,8 @@ if __name__ == "__main__":
                 j_observation = _get_joint_obs(observation)
                 s_value, c_h = critic(j_observation, h=c_h)  
 
-            # env.render()
+            # emarche: all the clipping processing could be done in the env
             observation_, reward, done, info = env.step(_to_dict_clip_array(action, a_low, a_high))    
-            
             reward = _array_to_dict_tensor(agents, reward, device)
             cost = _array_to_dict_tensor(agents, info['cost'], device)
             done = _array_to_dict_tensor(agents, done, device)
@@ -164,8 +163,7 @@ if __name__ == "__main__":
                 c_h = th.zeros((1, args.h_size))
 
                 _, logprob, entropy, _, _, _ = actors[k].get_action(b['observations'], b['actions'])
-                entropy_loss = entropy.mean()     # ([10])
-            
+                entropy_loss = entropy.mean()     # ([10])            
                
                 logratio = logprob - b['logprobs']  # (10, 50)
                 ratio = logratio.exp()  # (10, 50)
@@ -188,6 +186,8 @@ if __name__ == "__main__":
                 values, _ = critic(b['j_observations'])
                 values = values.squeeze()
                 
+                print(values)
+                print(b['returns'])
                 critic_loss = 0.5 * ((values - b['returns']) ** 2).mean()
                 critic_loss = critic_loss * args.v_coef
                
@@ -202,6 +202,8 @@ if __name__ == "__main__":
                         if approx_kl > args.target_kl:
                             break
         
+        if args.wandb_log: wandb.log({'Critic loss': float(critic_loss)})
+
         sps = int(global_step / (time.time() - start_time))
         if args.tb_log: summary_w.add_scalar('Training/SPS', sps, global_step) 
         if args.wandb_log: wandb.log({'SPS': sps})

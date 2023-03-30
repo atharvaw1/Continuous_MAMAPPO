@@ -12,9 +12,9 @@ class MultiAgentEnv(gym.Env):
         'render.modes' : ['human', 'rgb_array']
     }
 
-    def __init__(self, world, reset_callback=None, reward_callback=None,
+    def __init__(self, world, max_steps, reset_callback=None, reward_callback=None,
                  observation_callback=None, info_callback=None,
-                 done_callback=None, shared_viewer=True):
+                 done_callback=None, shared_viewer=True, discrete_action_space=False):
 
         world = copy.deepcopy(world)
         self.world = world
@@ -28,14 +28,18 @@ class MultiAgentEnv(gym.Env):
         self.info_callback = info_callback
         self.done_callback = done_callback
         # environment parameters
-        self.discrete_action_space = True
+        # emarche: This should control whether to use discrete or continuous actions
+        self.discrete_action_space = discrete_action_space
+        # emarche: This is no sense, let's just set the int action
         # if true, action is a number 0...N, otherwise action is a one-hot N-dimensional vector
-        self.discrete_action_input = False
+        #self.discrete_action_input = False
+        # emarche: No sense to force discrete actions
         # if true, even the action is continuous, action will be performed discretely
-        self.force_discrete_action = world.discrete_action if hasattr(world, 'discrete_action') else False
+        #self.force_discrete_action = world.discrete_action if hasattr(world, 'discrete_action') else False
         # if true, every agent has the same reward
         self.shared_reward = world.collaborative if hasattr(world, 'collaborative') else False
         self.time = 0
+        self.max_steps = max_steps
 
         # configure spaces
         self.action_space = []
@@ -46,7 +50,7 @@ class MultiAgentEnv(gym.Env):
             if self.discrete_action_space:
                 u_action_space = spaces.Discrete(world.dim_p * 2 + 1)
             else:
-                u_action_space = spaces.Box(low=-agent.u_range, high=+agent.u_range, shape=(world.dim_p,), dtype=np.float32)
+                u_action_space = spaces.Box(low=-agent.u_range, high=+agent.u_range, shape=(world.dim_p * 2 + 1,), dtype=np.float32)
             if agent.movable:
                 total_action_space.append(u_action_space)
             # communication action space
@@ -57,6 +61,7 @@ class MultiAgentEnv(gym.Env):
             if not agent.silent:
                 total_action_space.append(c_action_space)
             # total action space
+            # emarche: still have to handle this
             if len(total_action_space) > 1:
                 # all action spaces are discrete, so simplify to MultiDiscrete action space
                 if all([isinstance(act_space, spaces.Discrete) for act_space in total_action_space]):
@@ -87,27 +92,21 @@ class MultiAgentEnv(gym.Env):
         self.world.seed(seed)
 
     def step(self, action_n):
+        ''' emarche: This has no sense, we'll just process the int/float actions
+        
         one_hot_actions = []
         for act, acsp in zip(action_n, self.action_space):
-
-            # emarche: MultiDiscrete was not handled, fixed
-            if isinstance(acsp, MultiDiscrete):
-                a_range = acsp.high - acsp.low + 1
-                a_move = np.zeros(a_range[0])
-                a_comm = np.zeros(a_range[1])
-                a_move[act[0]] = 1.0
-                a_comm[act[1]] = 1.0
-                one_hot_actions.append(np.hstack((a_move, a_comm)))
-            else:
-                one_hot = np.zeros(acsp.n)
-                one_hot[act] = 1.0
-                one_hot_actions.append(one_hot)
+            one_hot = np.zeros(acsp.n)
+            one_hot[act] = 1.0
+            one_hot_actions.append(one_hot)
         action_n = one_hot_actions
+        '''
 
+        self.time += 1
         obs_n = []
         reward_n = []
         done_n = []
-        info_n = {'n': []}
+        info_n = {'n': [], 'cost': []}
         self.agents = self.world.policy_agents
         # set action for each agent
         for i, agent in enumerate(self.agents):
@@ -118,18 +117,29 @@ class MultiAgentEnv(gym.Env):
         for agent in self.agents:
             obs_n.append(self._get_obs(agent))
             reward_n.append(self._get_reward(agent))
+            # We handle it below
             done_n.append(self._get_done(agent))
+            # emarche: we changed the info callback just to return the cost, so we don't need the following
+            #info_n['n'].append(self._get_info(agent))
+            # emarche: add cost to the info dictionary; we could do it for all agents at the same time...
+            info_n['cost'].append(self._get_info(agent))    
 
-            info_n['n'].append(self._get_info(agent))
+        # max step timeout
+        if self.time >= self.max_steps:
+            done_n = np.ones(self.n)
 
         # all agents get total reward in cooperative case
         reward = np.sum(reward_n)
         if self.shared_reward:
             reward_n = [reward] * self.n
 
+        # Casting everything to np.array
+        #return tuple(obs_n), reward_n, done_n, info_n
         return np.array(obs_n), np.array(reward_n), np.array(done_n), info_n
 
+
     def reset(self):
+        self.time = 0
         # reset world
         self.reset_callback(self.world)
         # reset renderer
@@ -139,6 +149,9 @@ class MultiAgentEnv(gym.Env):
         self.agents = self.world.policy_agents
         for agent in self.agents:
             obs_n.append(self._get_obs(agent))
+        
+        # Casting everything to np.array
+        #return tuple(obs_n)
         return np.array(obs_n)
 
     # get info used for benchmarking
@@ -170,6 +183,8 @@ class MultiAgentEnv(gym.Env):
     def _set_action(self, action, agent, action_space, time=None):
         agent.action.u = np.zeros(self.world.dim_p)
         agent.action.c = np.zeros(self.world.dim_c)
+
+        # emarche: TODO check if MultiDiscrete is correct!
         # process action
         if isinstance(action_space, MultiDiscrete):
             act = []
@@ -181,34 +196,29 @@ class MultiAgentEnv(gym.Env):
             action = act
         else:
             action = [action]
-
+            
         if agent.movable:
             # physical action
-            if self.discrete_action_input:
-                agent.action.u = np.zeros(self.world.dim_p)
+            agent.action.u = np.zeros(self.world.dim_p)
+            if self.discrete_action_space:
                 # process discrete action
+                # emarche: u[0] moves on the x axis; u[1] on the y axis
                 if action[0] == 1: agent.action.u[0] = -1.0
                 if action[0] == 2: agent.action.u[0] = +1.0
                 if action[0] == 3: agent.action.u[1] = -1.0
                 if action[0] == 4: agent.action.u[1] = +1.0
             else:
-                if self.force_discrete_action:
-                    d = np.argmax(action[0])
-                    action[0][:] = 0.0
-                    action[0][d] = 1.0
-                if self.discrete_action_space:
-                    agent.action.u[0] += action[0][1] - action[0][2]
-                    agent.action.u[1] += action[0][3] - action[0][4]
-                else:
-                    agent.action.u = action[0]
-            sensitivity = 5.0
+                agent.action.u[0] += action[0][1] - action[0][2]
+                agent.action.u[1] += action[0][3] - action[0][4]
+        
+            sensitivity = 10.0
             if agent.accel is not None:
                 sensitivity = agent.accel
             agent.action.u *= sensitivity
             action = action[1:]
         if not agent.silent:
             # communication action
-            if self.discrete_action_input:
+            if self.discrete_action_space:
                 agent.action.c = np.zeros(self.world.dim_c)
                 agent.action.c[action[0]] = 1.0
             else:
@@ -236,7 +246,7 @@ class MultiAgentEnv(gym.Env):
                     else:
                         word = alphabet[np.argmax(other.state.c)]
                     message += (other.name + ' to ' + agent.name + ': ' + word + '   ')
-            #print(message)
+            # print(message)    # skip printing messages when rendering
 
         for i in range(len(self.viewers)):
             # create viewers (if necessary)
@@ -354,7 +364,6 @@ class BatchMultiAgentEnv(gym.Env):
             # reward = [r / len(self.env_batch) for r in reward]
             reward_n += reward
             done_n += done
-            
         return obs_n, reward_n, done_n, info_n
 
     def reset(self):

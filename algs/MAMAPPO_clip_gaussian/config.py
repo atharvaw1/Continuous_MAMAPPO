@@ -12,7 +12,7 @@ def parse_args():
     parser.add_argument("--verbose", type=str2bool, default=True, help="Log/print output")   
     parser.add_argument("--tb-log", type=str2bool, default=False, help="Tensorboard log")    
     parser.add_argument("--wandb-log", type=str2bool, default=True, help="Wandb log")
-    parser.add_argument("--tag", type=str, default='MAPPO_clip_gaussian', help="Training tag")
+    parser.add_argument("--tag", type=str, default='MAMAPPO_clip_gaussian', help="Training tag")
 
     # Environment
     # Cooperative: ['MaReferenceWrapper', 'MaSpeakerWrapper', 'MaSpreadWrapper'], 
@@ -25,21 +25,18 @@ def parse_args():
     #parser.add_argument("--norm-rew", type=str2bool, default=False, help="Normalize rewards")
 
     # Environment setup
-    parser.add_argument("--max-steps", type=int, default=25, help="Max n° of steps per episode")
+    parser.add_argument("--max-steps", type=int, default=50, help="Max n° of steps per episode")
 
     # Experiment
     parser.add_argument("--n-steps", type=int, default=500, help="the number of steps between policy updates")
-    parser.add_argument("--tot-steps", type=int, default=5000000, help="total timesteps of the experiments")
-    parser.add_argument("--model-checkpoint", type=str2bool, default=False, help="Save model weights during training")
-    parser.add_argument("--model-checkpoint-interval", type=int, default=150_000,
-                        help="number of steps between model checkpoints")
+    parser.add_argument("--tot-steps", type=int, default=4000000, help="total timesteps of the experiments")
 
     # Algorithm 
     parser.add_argument("--clip", type=float, default=0.2, help="the surrogate clipping coefficient")
     parser.add_argument("--clip-v", type=str2bool, default=False,
         help="Toggles wheter or not to use a clipped loss for the value function.")
     parser.add_argument("--target-kl", type=float, default=None, help="the target KL divergence threshold")
-    parser.add_argument("--gamma", type=float, default=0.99, help="the discount factor gamma")
+    parser.add_argument("--gamma", type=float, default=0.9, help="the discount factor gamma")
     parser.add_argument("--gae", type=str2bool, default=True, help="Use gae")
     parser.add_argument("--gae-lambda", type=float, default=0.95, help="the lambda for the gae")
     parser.add_argument("--ent-coef", type=float, default=1e-3, help="coefficient of the entropy")
@@ -50,8 +47,10 @@ def parse_args():
     parser.add_argument("--critic-lr", type=float, default=1e-3, help="the learning rate of the critic's optimizer")
     parser.add_argument("--anneal-lr", type=str2bool, default=True,
         help="Toggle learning rate annealing for policy and value networks")
-    parser.add_argument("--n-epochs", type=int, default=10, help="the epochs to update the policy")
-    parser.add_argument("--norm-adv", type=str2bool, default=True,
+    parser.add_argument("--pi-epochs", type=int, default=10, help="the epochs to update the policy")
+    parser.add_argument("--vf-epochs", type=int, default=30, help="the epochs to update the policy")
+
+    parser.add_argument("--norm-adv", type=str2bool, default=False,
         help="Toggles advantages normalization")
     parser.add_argument("--max-grad-norm", type=float, default=1.,
         help="the maximum norm for the gradient clipping")
@@ -62,18 +61,18 @@ def parse_args():
     parser.add_argument("--last-n", type=int, default=100, help="Average metrics over this time horizon")
 
     # wandb
-    parser.add_argument("--wandb-project-name", type=str, default="mamappo", help="the wandb's project name")
-    parser.add_argument("--wandb-entity", type=str, default="wandile-a", help="the entity (team) of wandb's project")
-    parser.add_argument("--wandb-mode", type=str, default="online",
+    parser.add_argument("--wandb-project-name", type=str, default="MPE_vtest", help="the wandb's project name")
+    parser.add_argument("--wandb-entity", type=str, default="emarche", help="the entity (team) of wandb's project")
+    parser.add_argument("--wandb-mode", type=str, default="online", 
         help="online or offline wadb mode. if offline,, we'll try to sync immediately after the run")
     parser.add_argument("--wandb-code", type=str2bool, default=False, 
         help="Save code in wandb")
 
     # Torch
-    parser.add_argument("--n-cpus", type=int, default=8, help="N° of cpus/max threads for process")
+    parser.add_argument("--n-cpus", type=int, default=4, help="N° of cpus/max threads for process")
     parser.add_argument("--th-deterministic", type=str2bool, default=True, 
         help="if toggled, `torch.backends.cudnn.deterministic=False`")
-    parser.add_argument("--cuda", type=str2bool, default=False,
+    parser.add_argument("--cuda", type=str2bool, default=True, 
         help="if toggled, cuda will be enabled by default")
 
     args = parser.parse_args()

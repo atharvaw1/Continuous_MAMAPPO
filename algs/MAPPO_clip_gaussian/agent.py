@@ -33,7 +33,7 @@ class GaussianActor(nn.Module):
     def __init__(self, env: gym.Env, agents: List[str], h_size: int, n_hidden: int):
         super().__init__()
        
-        o_space, a_space = env.observation_space[agents[0]], env.ma_space[agents[0]]
+        o_space, a_space = env.observation_space[agents[0]], env.action_space[agents[0]]
 
         self.hidden_1 = Linear(int(np.prod(o_space.shape)), h_size)
         self.gru_1 = nn.GRU(h_size, h_size, batch_first=True)
@@ -46,7 +46,7 @@ class GaussianActor(nn.Module):
         x = F.leaky_relu(self.hidden_1(x))
         x, h_ = self.gru_1(x, h)
         x = F.leaky_relu(self.hidden_2(x))
-        x = self.output(x)
+        x = F.tanh(self.output(x))
         return x, h_
 
     def get_action(self, x, y=None, h=None):

@@ -1,22 +1,23 @@
 import argparse
 import os
-from typing import Tuple, Optional, Dict, Union, List
+from typing import Tuple, Optional, Dict, Union, List, Type
 
+import gym
 import numpy as np
 import torch as th
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
-from envs.ma_mpe_wrappers import MaReferenceWrapper, MaSpeakerWrapper, MaSpreadWrapper, MaTagWrapper
+from envs.ma_mpe_wrappers import MaSpreadWrapper#, MaReferenceWrapper, MaSpeakerWrapper, MaTagWrapper
 
 Tensor = th.Tensor
 Array = np.array
 
 env_ids = {
-    'MaSpreadWrapper': MaSpreadWrapper,
-    'MaReferenceWrapper': MaReferenceWrapper,
-    'MaSpeakerWrapper': MaSpeakerWrapper,
-    'MaTagWrapper': MaTagWrapper,
+    'MaSpreadWrapper': MaSpreadWrapper#,
+    #'MaReferenceWrapper': MaReferenceWrapper,
+    #'MaSpeakerWrapper': MaSpeakerWrapper,
+    #'MaTagWrapper': MaTagWrapper,
 }
 
 @th.jit.script

@@ -1,6 +1,5 @@
 import numpy as np
 
-
 # physical/external base state of all entites
 class EntityState(object):
     def __init__(self):
@@ -46,8 +45,6 @@ class Entity(object):
         self.state = EntityState()
         # mass
         self.initial_mass = 1.0
-        # emarche: added id instead of communicating the color
-        self.id = None
 
     @property
     def mass(self):
@@ -127,11 +124,11 @@ class World(object):
         for agent in self.scripted_agents:
             agent.action = agent.action_callback(agent, self)
         # gather forces applied to entities
-        p_force = [None] * len(self.entities)
+        p_force = [None] * len(self.entities)        
         # apply agent physical controls
         p_force = self.apply_action_force(p_force)
         # apply environment forces
-        p_force = self.apply_environment_force(p_force)
+        #p_force = self.apply_environment_force(p_force)
         # integrate physical state
         self.integrate_state(p_force)
         # update agent state
@@ -144,7 +141,8 @@ class World(object):
         for i,agent in enumerate(self.agents):
             if agent.movable:
                 noise = np.random.randn(*agent.action.u.shape) * agent.u_noise if agent.u_noise else 0.0
-                p_force[i] = agent.action.u + noise                
+                p_force[i] = agent.action.u + noise 
+
         return p_force
 
     # gather physical forces acting on entities
@@ -164,6 +162,7 @@ class World(object):
 
     # integrate physical state
     def integrate_state(self, p_force):
+        '''
         for i,entity in enumerate(self.entities):
             if not entity.movable: continue
             entity.state.p_vel = entity.state.p_vel * (1 - self.damping)
@@ -174,6 +173,14 @@ class World(object):
                 if speed > entity.max_speed:
                     entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
                                                                   np.square(entity.state.p_vel[1])) * entity.max_speed
+            entity.state.p_pos += entity.state.p_vel * self.dt
+        '''
+        # emarche: for fixed control, we ignore the forces and just apply a constant velocity
+        for i,entity in enumerate(self.entities):
+            if not entity.movable: continue
+            if (p_force[i] is not None):
+                entity.state.p_vel = (p_force[i] / entity.mass) * self.dt
+            
             entity.state.p_pos += entity.state.p_vel * self.dt
 
     def update_agent_state(self, agent):
