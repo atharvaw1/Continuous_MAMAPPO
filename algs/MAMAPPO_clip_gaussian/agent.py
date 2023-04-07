@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from utils.misc import *
 
+
 def Linear(input_dim, output_dim, act_fn='leaky_relu', init_weight_uniform=True):
     """
     Creat a linear layer.
@@ -28,10 +29,11 @@ def Linear(input_dim, output_dim, act_fn='leaky_relu', init_weight_uniform=True)
     nn.init.constant_(fc.bias, 0.00)
     return fc
 
+
 class GaussianActor(nn.Module):
     def __init__(self, env: gym.Env, agents: List[str], h_size: int, n_hidden: int):
         super().__init__()
-       
+
         o_space, a_space = env.observation_space[agents[0]], env.ma_space[agents[0]]
 
         self.hidden_1 = Linear(int(np.prod(o_space.shape) + 2), h_size)
@@ -40,7 +42,7 @@ class GaussianActor(nn.Module):
         self.output = Linear(h_size, int(np.prod(a_space.shape)), act_fn='tanh')
 
         self.logstd = nn.Parameter(-th.ones(int(np.prod(a_space.shape))))
- 
+
     def forward(self, x, h=None):
         x = F.leaky_relu(self.hidden_1(x))
         x, h_ = self.gru_1(x, h)
@@ -49,14 +51,15 @@ class GaussianActor(nn.Module):
         return x, h_
 
     def get_action(self, x, y=None, h=None, eval=False):
-        mean, h_ = self.forward(x, h)   
+        mean, h_ = self.forward(x, h)
         logstd = self.logstd.expand_as(mean)
-        std = th.exp(logstd)
+        std = th.exp(logstd) if not eval else th.tensor([[1e-10,1e-10]])
         prob = Normal(mean, std)
-        if y is None:      
+        if y is None:
             y = prob.sample()
-    
+
         return y, prob.log_prob(y).sum(-1), prob.entropy().sum(-1), mean, std, h_
+
 
 class Critic(nn.Module):
     def __init__(self, env, agents: List[str], h_size: int, n_hidden: int):

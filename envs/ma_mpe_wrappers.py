@@ -34,9 +34,11 @@ def make_env(scenario_name, **kwargs):
     # create world
     world = scenario.make_world(**kwargs)
     # create multiagent environment
-    env = MultiAgentEnv(world, kwargs['max_steps'], scenario.reset_world, scenario.reward, scenario.observation, scenario.collision, discrete_action_space=True)
+    env = MultiAgentEnv(world, kwargs['max_steps'], scenario.reset_world, scenario.reward, scenario.observation,
+                        scenario.collision, discrete_action_space=True)
 
     return env
+
 
 class MaWrapper(ABC):
     """Macro action wrapper for pettingzoo's env."""
@@ -143,6 +145,7 @@ class MaWrapper(ABC):
         """
         return self.env.n
 
+
 class MaSpreadWrapper(MaWrapper):
     """Macro action wrapper for pettingzoo's Simple Spread env.
     
@@ -188,45 +191,50 @@ class MaSpreadWrapper(MaWrapper):
         current_pos = self._get_positions()
         delta_pos = tg_pos - current_pos
 
-        #print(f"Delta pos: {delta_pos}")
+        # print(f"Delta pos: {delta_pos}")
         x_actions = np.where(delta_pos[:, 0] < 0, 1, 2)
         x_actions = np.where(np.abs(delta_pos[:, 0]) < self.ma_threshold, 0, x_actions)
         y_actions = np.where(delta_pos[:, 1] < 0, 3, 4)
         y_actions = np.where(np.abs(delta_pos[:, 1]) < self.ma_threshold, 0, y_actions)
 
-        #print(f"Chosen waypoint: {actions}")
+        actions_nonnull = np.where(x_actions > 0, x_actions, y_actions)
+
+        # print(f"Chosen waypoint: {actions}")
         # A ma ends when the {xy}_actions are 0
         actions = np.sum(np.stack((x_actions, y_actions), axis=-1), axis=-1)
 
-        #print(f"Sum discrete action: {actions}")
-        #print(f"Action x: {x_actions}")
-        #print(f"Action y: {y_actions}")
+        # print(f"Sum discrete action: {actions}")
+        # print(f"Actions without 0s: {actions_nonnull}")
+        # print(f"Action x: {x_actions}")
+        # print(f"Action y: {y_actions}")
 
         self.ma_done = actions == 0
         self.ma_step += 1
 
         # If an agent doesn't have to move on x, it should move on y because otherwise it biases the reward
-        _, reward_x, _, info_x = self.env.step(x_actions)
-        #print(f"Step size x: {s[0][2:4] - current_pos[0]}")
-        #self.env.render()
-        #print(f"Macro action done: {self.ma_done}")
-        #input()
-        #reward_x /= self.env.n  # Because we have joint rew and the env is still summing agents' rewards
-        #self.env.render()
+        # _, reward_x, _, info_x = self.env.step(x_actions)
+        # _, reward_x, _, info_x = self.env.step(x_actions)
+        # print(f"Step size x: {s[0][2:4] - current_pos[0]}")
+        # self.env.render()
+        # print(f"Macro action done: {self.ma_done}")
+        # input()
+        # reward_x /= self.env.n  # Because we have joint rew and the env is still summing agents' rewards
+        # self.env.render()
 
-        self.state, reward_y, done, info = self.env.step(y_actions)
-        #time.sleep(0.2)
-        #print(self.state[0][2:4])
-        #print(s[0][2:4])
-        #print(f"Step size y: {self.state[0][2:4] - s[0][2:4]}")
-        #reward_y /= self.env.n
-        #self.env.render()
-        #time.sleep(0.2)
-        
-        reward = reward_x + reward_y
-      
+        # self.state, reward_y, done, info = self.env.step(y_actions)
+        # time.sleep(0.2)
+        # print(self.state[0][2:4])
+        # print(s[0][2:4])
+        # print(f"Step size y: {self.state[0][2:4] - s[0][2:4]}")
+        # reward_y /= self.env.n
+        # self.env.render()
+        # time.sleep(0.2)
+
+        _, reward, done, info = self.env.step(actions_nonnull)
+        # reward = reward_x + reward_y
+
         info['ma_step'] = self.ma_step
         info['ma_done'] = self.ma_done
-        info['cost'] += info_x['cost']
+        info['cost'] += info['cost']
 
         return self.state, reward, done, info
