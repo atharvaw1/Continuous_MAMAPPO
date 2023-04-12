@@ -199,6 +199,9 @@ class MaSpreadWrapper(MaWrapper):
 
         actions_nonnull = np.where(x_actions > 0, x_actions, y_actions)
 
+        rand = np.random.rand(x_actions.shape[0])
+        actions_nonnull = np.where((x_actions > 0) & (y_actions > 0) & (rand < 0.5), y_actions, actions_nonnull)
+
         # print(f"Chosen waypoint: {actions}")
         # A ma ends when the {xy}_actions are 0
         actions = np.sum(np.stack((x_actions, y_actions), axis=-1), axis=-1)
@@ -230,7 +233,7 @@ class MaSpreadWrapper(MaWrapper):
         # self.env.render()
         # time.sleep(0.2)
 
-        _, reward, done, info = self.env.step(actions_nonnull)
+        self.state, reward, done, info = self.env.step(actions_nonnull)
         # reward = reward_x + reward_y
 
         info['ma_step'] = self.ma_step

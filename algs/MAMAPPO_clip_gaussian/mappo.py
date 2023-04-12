@@ -59,7 +59,7 @@ if __name__ == "__main__":
         buffers[k] = Buffer(env, agents, args.n_steps, args.max_steps, args.gamma, args.gae, args.gae_lambda, device)
 
     # Training metrics
-    global_step, ep_count, eval_step, eval_ep_count = 0, 0, 0, 0
+    global_step, ep_count, eval_step, eval_ep_count, ep_between_eval = 0, 0, 0, 0, 0
     start_time = time.time()
     reward_q, cost_q = deque(maxlen=args.last_n), deque(maxlen=args.last_n)
 
@@ -189,7 +189,8 @@ if __name__ == "__main__":
                     'Reward': ep_reward,
                     'Avg_Reward': np.mean(reward_q),
                     'Cost': ep_cost,
-                    'Avg_Cost': np.mean(cost_q)
+                    'Avg_Cost': np.mean(cost_q),
+                    'Macro': ep_macro
                 }
 
                 if args.tb_log: summary_w.add_scalars('Training', record, global_step)
@@ -225,87 +226,90 @@ if __name__ == "__main__":
                 value_, _ = critics[k](j_observation, c_h[k])
                 buffers[k].compute_mc(value_.reshape(-1))
 
-        print("Evaluating policy without std deviation:")
-        # Environment reset
-        observation = _array_to_dict_tensor(agents, env.reset(), device)
 
-        ma_observation = deepcopy(observation)
-        j_observation = {}
-        ma_action = {k: th.zeros((args.n_envs, env.ma_space[k].shape[0])) for k in agents}
-        ma_mean = deepcopy(ma_action)
-        ma_std = deepcopy(ma_action)
-        ma_logprob = {k: th.zeros(args.n_envs) for k in agents}
-        ma_step, ma_gamma, ma_reward = {}, {}, {}
+        if ep_count >= ep_between_eval:
+            ep_between_eval += 5000
+            print("Evaluating policy without std deviation:")
+            # Environment reset
+            observation = _array_to_dict_tensor(agents, env.reset(), device)
 
-        ma_value = deepcopy(ma_logprob)
-        ma_done = {k: th.ones(args.n_envs) for k in agents}
-        a_h, a_h_ = [{k: th.zeros((1, args.h_size)) for k in agents} for _ in range(2)]
-        c_h, c_h_ = [{k: th.zeros((1, args.h_size)) for k in agents} for _ in range(2)]
+            ma_observation = deepcopy(observation)
+            j_observation = {}
+            ma_action = {k: th.zeros((args.n_envs, env.ma_space[k].shape[0])) for k in agents}
+            ma_mean = deepcopy(ma_action)
+            ma_std = deepcopy(ma_action)
+            ma_logprob = {k: th.zeros(args.n_envs) for k in agents}
+            ma_step, ma_gamma, ma_reward = {}, {}, {}
 
-        ma_count = {k: th.zeros(args.n_envs) for k in agents}
+            ma_value = deepcopy(ma_logprob)
+            ma_done = {k: th.ones(args.n_envs) for k in agents}
+            a_h, a_h_ = [{k: th.zeros((1, args.h_size)) for k in agents} for _ in range(2)]
+            c_h, c_h_ = [{k: th.zeros((1, args.h_size)) for k in agents} for _ in range(2)]
 
-        ep_reward, ep_cost, ep_step, ep_macro, eval_ep_count = 0, 0, 0, 0, 0
-        # while any(np.sum(list(ma_count.values())) < args.n_steps):
-        while all(np.array(list(ma_count.values())) < args.n_steps):
-            # print(np.array(list(ma_count.values())))
-            # global_step += 1 * args.n_envs
-            eval_step += args.n_envs
-            ep_step += 1
+            ma_count = {k: th.zeros(args.n_envs) for k in agents}
 
-            with th.no_grad():
-                for k in agents:
-                    if ma_done[k]:
-                        if k == agents[0]: ep_macro += 1
+            ep_reward, ep_cost, ep_step, ep_macro, eval_ep_count = 0, 0, 0, 0, 0
+            # while any(np.sum(list(ma_count.values())) < args.n_steps):
+            while all(np.array(list(ma_count.values())) < args.n_steps):
+                # print(np.array(list(ma_count.values())))
+                # global_step += 1 * args.n_envs
+                eval_step += args.n_envs
+                ep_step += 1
 
-                        # reset ma reward / discount
-                        ma_reward[k] = th.zeros(1)
-                        ma_step[k] = th.ones(
-                            1)  # Should be 1 in order to have the first action to be discounted by gamma
-                        ma_gamma[k] = th.ones(1)
+                with th.no_grad():
+                    for k in agents:
+                        if ma_done[k]:
+                            if k == agents[0]: ep_macro += 1
 
-                        ma_observation[k] = deepcopy(observation[k])
-                        ma_observation[k] = th.cat([ma_observation[k], ma_action[k]], dim=-1)
-                        (
-                            ma_action[k],
-                            ma_logprob[k],
-                            _,
-                            ma_mean[k],
-                            ma_std[k],
-                            a_h_[k]
-                        ) = actors[k].get_action(ma_observation[k], h=a_h[k], eval=True)
+                            # reset ma reward / discount
+                            ma_reward[k] = th.zeros(1)
+                            ma_step[k] = th.ones(
+                                1)  # Should be 1 in order to have the first action to be discounted by gamma
+                            ma_gamma[k] = th.ones(1)
 
-            observation_, reward, done, info = env.step(_to_dict_clip_array(ma_action, a_low, a_high))
+                            ma_observation[k] = deepcopy(observation[k])
+                            ma_observation[k] = th.cat([ma_observation[k], ma_action[k]], dim=-1)
+                            (
+                                ma_action[k],
+                                ma_logprob[k],
+                                _,
+                                ma_mean[k],
+                                ma_std[k],
+                                a_h_[k]
+                            ) = actors[k].get_action(ma_observation[k], h=a_h[k], eval=True)
 
-            ma_done = _array_to_dict_tensor(agents, info['ma_done'], device)
-            reward = _array_to_dict_tensor(agents, reward, device)
-            cost = _array_to_dict_tensor(agents, info['cost'], device)
-            done = _array_to_dict_tensor(agents, done, device)
+                observation_, reward, done, info = env.step(_to_dict_clip_array(ma_action, a_low, a_high))
 
-            ep_reward += reward[agents[0]].numpy()
-            ep_cost += np.sum(info['cost'])
+                ma_done = _array_to_dict_tensor(agents, info['ma_done'], device)
+                reward = _array_to_dict_tensor(agents, reward, device)
+                cost = _array_to_dict_tensor(agents, info['cost'], device)
+                done = _array_to_dict_tensor(agents, done, device)
 
-            if all(list(done.values())):
-                eval_ep_count += 1
-                record = {
-                    'Eval_Reward': ep_reward,
-                    'Eval_Cost': ep_cost,
-                    'Eval_Step': eval_step
-                }
+                ep_reward += reward[agents[0]].numpy()
+                ep_cost += np.sum(info['cost'])
 
-                if args.tb_log: summary_w.add_scalars('Training', record, global_step)
-                if args.wandb_log: wandb.log(record)
+                if all(list(done.values())):
+                    eval_ep_count += 1
+                    record = {
+                        'Eval_Reward': ep_reward,
+                        'Eval_Cost': ep_cost,
+                        'Eval_Step': eval_step
+                    }
 
-                if args.verbose:
-                    print(f"Eval Reward: {record['Eval_Reward']},\n\t ")
+                    if args.tb_log: summary_w.add_scalars('Training', record, global_step)
+                    if args.wandb_log: wandb.log(record)
 
-                ep_step, ep_reward, ep_cost, ep_macro = 0, 0, 0, 0
-                observation = _array_to_dict_tensor(agents, deepcopy(env.reset()), device)
-                a_h = {k: th.zeros((1, args.h_size)) for k in agents}
-                c_h = {k: th.zeros((1, args.h_size)) for k in agents}
-                ma_done = {k: th.ones(args.n_envs) for k in agents}
+                    if args.verbose:
+                        print(f"Eval Reward: {record['Eval_Reward']},\n\t ")
 
-                if eval_ep_count >= 10:
-                    break
+                    ep_step, ep_reward, ep_cost, ep_macro = 0, 0, 0, 0
+                    observation = _array_to_dict_tensor(agents, deepcopy(env.reset()), device)
+                    a_h = {k: th.zeros((1, args.h_size)) for k in agents}
+                    c_h = {k: th.zeros((1, args.h_size)) for k in agents}
+                    ma_done = {k: th.ones(args.n_envs) for k in agents}
+
+                    if eval_ep_count >= 10:
+                        break
 
         print("Updating")
         # Optimize the policy and value networks
