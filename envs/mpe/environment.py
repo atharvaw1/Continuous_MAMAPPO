@@ -184,19 +184,20 @@ class MultiAgentEnv(gym.Env):
         agent.action.u = np.zeros(self.world.dim_p)
         agent.action.c = np.zeros(self.world.dim_c)
 
-        # emarche: TODO check if MultiDiscrete is correct!
-        # process action
-        if isinstance(action_space, MultiDiscrete):
-            act = []
-            size = action_space.high - action_space.low + 1
-            index = 0
-            for s in size:
-                act.append(action[index:(index+s)])
-                index += s
-            action = act
-        else:
-            action = [action]
-            
+        # # emarche: TODO check if MultiDiscrete is correct!
+        # # process action
+        # if isinstance(action_space, MultiDiscrete):
+        #     act = []
+        #     size = action_space.high - action_space.low + 1
+        #     index = 0
+        #     for s in size:
+        #         act.append(action[index:(index+s)])
+        #         index += s
+        #     action = act
+        # else:
+        #     action = [action]
+
+
         if agent.movable:
             # physical action
             agent.action.u = np.zeros(self.world.dim_p)

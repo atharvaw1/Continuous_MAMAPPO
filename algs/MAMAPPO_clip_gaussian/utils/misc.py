@@ -8,14 +8,14 @@ import torch as th
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
-from envs.ma_mpe_wrappers import MaSpreadWrapper#, MaReferenceWrapper, MaSpeakerWrapper, MaTagWrapper
+from envs.ma_mpe_wrappers import MaSpreadWrapper, MaReferenceWrapper#, MaSpeakerWrapper, MaTagWrapper
 
 Tensor = th.Tensor
 Array = np.array
 
 env_ids = {
-    'MaSpreadWrapper': MaSpreadWrapper#,
-    #'MaReferenceWrapper': MaReferenceWrapper,
+    'MaSpreadWrapper': MaSpreadWrapper,
+    'MaReferenceWrapper': MaReferenceWrapper,
     #'MaSpeakerWrapper': MaSpeakerWrapper,
     #'MaTagWrapper': MaTagWrapper,
 }
