@@ -61,8 +61,8 @@ def parse_args():
     parser.add_argument("--last-n", type=int, default=100, help="Average metrics over this time horizon")
 
     # wandb
-    parser.add_argument("--wandb-project-name", type=str, default="MPE_vtest", help="the wandb's project name")
-    parser.add_argument("--wandb-entity", type=str, default="emarche", help="the entity (team) of wandb's project")
+    parser.add_argument("--wandb-project-name", type=str, default="mamappo_fixed", help="the wandb's project name")
+    parser.add_argument("--wandb-entity", type=str, default="wandile-a", help="the entity (team) of wandb's project")
     parser.add_argument("--wandb-mode", type=str, default="online", 
         help="online or offline wadb mode. if offline,, we'll try to sync immediately after the run")
     parser.add_argument("--wandb-code", type=str2bool, default=False, 

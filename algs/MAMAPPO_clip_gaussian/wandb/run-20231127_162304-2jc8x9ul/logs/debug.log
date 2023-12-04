@@ -1,0 +1,16 @@
+2023-11-27 16:23:04,988 INFO    MainThread:9480 [wandb_setup.py:_flush():76] Loading settings from C:\Users\athwa\.config\wandb\settings
+2023-11-27 16:23:04,988 INFO    MainThread:9480 [wandb_setup.py:_flush():76] Loading settings from C:\Users\athwa\Downloads\College stuff\RL Project Course\MA_mpe\algs\MAMAPPO_clip_gaussian\wandb\settings
+2023-11-27 16:23:04,988 INFO    MainThread:9480 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2023-11-27 16:23:04,988 INFO    MainThread:9480 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'algs\\MAMAPPO_clip_gaussian\\mappo_adversarial.py', 'program': 'C:\\Users\\athwa\\Downloads\\College stuff\\RL Project Course\\MA_mpe\\algs\\MAMAPPO_clip_gaussian\\mappo_adversarial.py'}
+2023-11-27 16:23:04,988 INFO    MainThread:9480 [wandb_init.py:_log_setup():428] Logging user logs to C:\Users\athwa\Downloads\College stuff\RL Project Course\MA_mpe\algs\MAMAPPO_clip_gaussian\wandb\run-20231127_162304-2jc8x9ul\logs\debug.log
+2023-11-27 16:23:04,989 INFO    MainThread:9480 [wandb_init.py:_log_setup():429] Logging internal logs to C:\Users\athwa\Downloads\College stuff\RL Project Course\MA_mpe\algs\MAMAPPO_clip_gaussian\wandb\run-20231127_162304-2jc8x9ul\logs\debug-internal.log
+2023-11-27 16:23:04,989 INFO    MainThread:9480 [wandb_init.py:init():462] calling init triggers
+2023-11-27 16:23:04,989 INFO    MainThread:9480 [wandb_init.py:init():465] wandb.init called with sweep_config: {}
+config: {'verbose': True, 'tb_log': False, 'wandb_log': True, 'tag': 'MAMAPPO_clip_gaussian', 'env': 'MaSpreadWrapper', 'n_envs': 1, 'seed': 1, 'max_steps': 50, 'n_steps': 500, 'tot_steps': 4000000, 'clip': 0.2, 'clip_v': False, 'target_kl': None, 'gamma': 0.9, 'gae': True, 'gae_lambda': 0.95, 'ent_coef': 0.001, 'v_coef': 0.5, 'actor_lr': 0.0003, 'critic_lr': 0.001, 'anneal_lr': True, 'pi_epochs': 10, 'vf_epochs': 30, 'norm_adv': False, 'max_grad_norm': 1.0, 'h_size': 64, 'n_hidden': 2, 'last_n': 100, 'wandb_project_name': 'mamappo_fixed', 'wandb_entity': 'wandile-a', 'wandb_mode': 'online', 'wandb_code': False, 'n_cpus': 4, 'th_deterministic': True, 'cuda': True, 'batch_size': 500}
+2023-11-27 16:23:04,989 INFO    MainThread:9480 [wandb_init.py:init():515] starting backend
+2023-11-27 16:23:04,989 INFO    MainThread:9480 [backend.py:_multiprocessing_setup():97] multiprocessing start_methods=spawn, using: spawn
+2023-11-27 16:23:05,010 INFO    MainThread:9480 [backend.py:ensure_launched():217] starting backend process...
+2023-11-27 16:23:05,250 INFO    MainThread:9480 [backend.py:ensure_launched():222] started backend process with pid: 2376
+2023-11-27 16:23:05,251 INFO    MainThread:9480 [wandb_init.py:init():525] backend started and connected
+2023-11-27 16:23:05,292 INFO    MainThread:9480 [wandb_init.py:init():596] updated telemetry
+2023-11-27 16:23:05,332 INFO    MainThread:9480 [wandb_init.py:init():627] communicating run to backend with 30 second timeout

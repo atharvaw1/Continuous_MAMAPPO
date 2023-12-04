@@ -31,7 +31,6 @@ def _array_to_dict_tensor(agents: List[str], data: Array, device: th.device, ast
 def _get_joint_obs(observations: Dict[str, Tensor]) -> Tensor:
     return th.cat(list(observations.values())).reshape(1, -1)
 
-
 if __name__ == "__main__":
     args = config.parse_args()
 
@@ -43,25 +42,34 @@ if __name__ == "__main__":
     set_seeds(args.seed, args.th_deterministic)
     device = set_torch(args.n_cpus, args.cuda)
 
+
     # Environment setup    
     env = env_ids[args.env](args.seed, args.max_steps)
-
-    agents = env.agent_ids
+    agents = env.agent_ids[:env.env_params["num_good"]]
     a_low = {k: space.low for k, space in env.ma_space.items()}
     a_high = {k: space.high for k, space in env.ma_space.items()}
 
+    adversary = env.agent_ids[:env.env_params["num_adversaries"]]
+
     # Actor-Critics setup
     actors, critics, a_optim, c_optim, buffers = {}, {}, {}, {}, {}
+    actors_adversary, critics_adversary, a_optim_adversary, c_optim_adversary, buffers_adversary = {}, {}, {}, {}, {}
     params = []
     global_step = 0
     for k in agents:
         actors[k] = GaussianActor(env, agents, args.h_size, args.n_hidden).to(device)
-        # actors[k].load_state_dict(torch.load(f"outputs/actor_{k}_model_checkpoint_step_{global_step}.pt"))
         a_optim[k] = optim.Adam(list(actors[k].parameters()), lr=args.actor_lr, eps=1e-5)
         critics[k] = Critic(env, agents, args.h_size, args.n_hidden).to(device)
-        # critics[k].load_state_dict(torch.load(f"outputs/critic_{k}_model_checkpoint_step_{global_step}.pt"))
         c_optim[k] = optim.Adam(list(critics[k].parameters()), lr=args.critic_lr, eps=1e-5)
         buffers[k] = Buffer(env, agents, args.n_steps, args.max_steps, args.gamma, args.gae, args.gae_lambda, device)
+
+    for k in adversary:
+        actors_adversary[k] = GaussianActor(env, adversary, args.h_size, args.n_hidden).to(device)
+        a_optim_adversary[k] = optim.Adam(list(actors_adversary[k].parameters()), lr=args.actor_lr, eps=1e-5)
+        critics_adversary[k] = Critic(env, adversary, args.h_size, args.n_hidden).to(device)
+        c_optim_adversary[k] = optim.Adam(list(critics_adversary[k].parameters()), lr=args.critic_lr, eps=1e-5)
+        buffers_adversary[k] = Buffer(env, adversary, args.n_steps, args.max_steps, args.gamma, args.gae,
+                                      args.gae_lambda, device)
 
     # Training metrics
     global_step, ep_count, eval_step, eval_ep_count, ep_between_eval = 0, 0, 0, 0, 0
@@ -201,7 +209,6 @@ if __name__ == "__main__":
                 if args.tb_log: summary_w.add_scalars('Training', record, global_step)
                 if args.wandb_log: wandb.log(record)
 
-
                 # Save model weights at training intervals
                 if global_step % 100_000 == 0:
                     for k in agents:
@@ -238,7 +245,6 @@ if __name__ == "__main__":
             for k in agents:
                 value_, _ = critics[k](j_observation, c_h[k])
                 buffers[k].compute_mc(value_.reshape(-1))
-
 
         if ep_count >= ep_between_eval:
             ep_between_eval += 5000

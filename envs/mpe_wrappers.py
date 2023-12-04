@@ -122,6 +122,7 @@ class MultiAgentWrapper(ABC):
         Returns:
             dict: a dictionary with agents' action spaces
         """
+
         return {k: act_space for k, act_space in zip(self.agent_ids, self.env.action_space)}
 
     @property
@@ -180,6 +181,42 @@ class SpreadWrapper(MultiAgentWrapper):
 
         self.steps += 1
       
+        self.state, reward, done, info = self.env.step(list(actions.values()))
+
+        return self.state, reward, done, info
+
+
+class ReferenceWrapper(MultiAgentWrapper):
+    """Macro action wrapper for pettingzoo's Simple Reference env.
+
+
+    """
+
+    def __init__(self, seed: int = 0, max_steps: int = 100) -> None:
+        """
+        Args:
+            <arg name> (<arg type>): <description>
+            print_cols (bool): A flag used to print the columns to the console
+                (default is False)
+        """
+        self.env_params = {'num_agents': 2, 'num_landmarks': 3, 'max_steps': max_steps}
+        super().__init__('simple_reference', seed, **self.env_params)
+
+
+    def step(self, actions: Dict[str, List[float]]):
+        """Perform actions in the environment.
+
+        Cast the continuous macro action to discrete commands to reach the target location and perform the step.
+
+        Returns:
+            observations (Dict[str, List[float]]): agents' observations
+            rewards (Dict[str, List[float]]): agents' rewards
+            done (bool): whether episode is done
+            info (...): a dictionary with agents' observations
+        """
+
+        self.steps += 1
+
         self.state, reward, done, info = self.env.step(list(actions.values()))
 
         return self.state, reward, done, info

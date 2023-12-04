@@ -7,15 +7,14 @@ import torch as th
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
-from envs.mpe_wrappers import SpreadWrapper
-#ReferenceWrapper, SpeakerWrapper, TagWrapper, PushWrapper, AdversaryWrapper
+from envs.mpe_wrappers import SpreadWrapper, ReferenceWrapper#, SpeakerWrapper, TagWrapper, PushWrapper, AdversaryWrapper
 
 Tensor = th.Tensor
 Array = np.array
 
 env_ids = {
-    'SpreadWrapper': SpreadWrapper#,
-    #'ReferenceWrapper': ReferenceWrapper,
+    'SpreadWrapper': SpreadWrapper,
+    'ReferenceWrapper': ReferenceWrapper,
     #'SpeakerWrapper': SpeakerWrapper,
     #'TagWrapper': TagWrapper,
     #'PushWrapper': PushWrapper,

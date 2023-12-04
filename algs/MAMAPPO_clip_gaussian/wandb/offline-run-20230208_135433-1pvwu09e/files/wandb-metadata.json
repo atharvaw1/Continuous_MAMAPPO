@@ -1,0 +1,31 @@
+{
+    "os": "Windows-10-10.0.19044-SP0",
+    "python": "3.9.13",
+    "heartbeatAt": "2023-02-08T18:54:38.598283",
+    "startedAt": "2023-02-08T18:54:33.389180",
+    "docker": null,
+    "gpu": "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "gpu_count": 1,
+    "cpu_count": 16,
+    "cuda": null,
+    "args": [
+        "--wandb-log",
+        "True",
+        "--cuda",
+        "False",
+        "--env",
+        "MaSpreadWrapper"
+    ],
+    "state": "running",
+    "program": "C:\\Users\\athwa\\Downloads\\College stuff\\RL Project Course\\MA_mpe\\algs\\MAMAPPO_clip_gaussian\\mappo.py",
+    "codePath": "algs\\MAMAPPO_clip_gaussian\\mappo.py",
+    "git": {
+        "remote": "https://github.com/atharvaw1/MA_mpe.git",
+        "commit": "4753f679db60e5f9a4411d953fd3f99103f77341"
+    },
+    "email": "ath.wand@gmail.com",
+    "root": "C:/Users/athwa/Downloads/College stuff/RL Project Course/MA_mpe",
+    "host": "LAPTOP-IRK6K8EL",
+    "username": "athwa",
+    "executable": "C:\\Users\\athwa\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.9_qbz5n2kfra8p0\\python.exe"
+}

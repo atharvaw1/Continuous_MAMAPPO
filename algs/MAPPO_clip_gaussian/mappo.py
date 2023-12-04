@@ -1,4 +1,5 @@
 import sys;
+from copy import deepcopy
 
 from torch import Type
 
@@ -53,7 +54,7 @@ if __name__ == "__main__":
     c_optim = optim.Adam(list(critic.parameters()), lr=args.critic_lr, eps=1e-5)
 
     # Training metrics
-    global_step, ep_count = 0, 0
+    global_step, ep_count,ep_between_eval, eval_step = 0, 0, 0, 0
     start_time = time.time()
     reward_q, cost_q = deque(maxlen=args.last_n), deque(maxlen=args.last_n)
 
@@ -151,7 +152,76 @@ if __name__ == "__main__":
             value_, _ = critic(j_observation, c_h)  
             for k in agents:
                 buffers[k].compute_mc(value_.reshape(-1))
-                
+
+        if ep_count >= ep_between_eval:
+            ep_between_eval += 5000
+            print("Evaluating policy without std deviation:")
+            # Environment reset
+            observation = _array_to_dict_tensor(agents, env.reset(), device)
+            action, logprob, mean, std = [{k: 0 for k in agents} for _ in range(4)]
+            a_h = {k: th.zeros((1, args.h_size)) for k in agents}
+            c_h = th.zeros((1, args.h_size))
+            ep_reward, ep_cost,eval_ep_count = 0, 0, 0
+
+            for step in range(args.n_steps):
+                global_step += 1 * args.n_envs
+
+                with th.no_grad():
+                    for k in agents:
+                        (
+                            action[k],
+                            logprob[k],
+                            _,
+                            mean[k],
+                            std[k],
+                            a_h[k]
+                        ) = actors[k].get_action(observation[k], h=a_h[k])
+
+                    j_observation = _get_joint_obs(observation)
+                    s_value, c_h = critic(j_observation, h=c_h)
+
+                    # emarche: all the clipping processing could be done in the env
+                observation_, reward, done, info = env.step(_to_dict_clip_array(action, a_low, a_high))
+                reward = _array_to_dict_tensor(agents, reward, device)
+                cost = _array_to_dict_tensor(agents, info['cost'], device)
+                done = _array_to_dict_tensor(agents, done, device)
+
+
+                # Consider the metrics in the first agent as its fully cooperative
+                ep_reward += reward[agents[0]].numpy()
+                ep_cost += np.sum(info['cost'])
+
+                if all(list(done.values())):
+                    eval_ep_count += 1
+                    record = {
+                        'Eval_Reward': ep_reward,
+                        'Eval_Cost': ep_cost,
+                        'Eval_Step': eval_step
+                    }
+
+                    if args.tb_log: summary_w.add_scalars('Training', record, global_step)
+                    if args.wandb_log: wandb.log(record)
+
+                    if args.verbose:
+                        print(f"Eval Reward: {record['Eval_Reward']},\n\t ")
+
+                    ep_step, ep_reward, ep_cost = 0, 0, 0
+                    observation = _array_to_dict_tensor(agents, env.reset(), device)
+                    a_h = {k: th.zeros((1, args.h_size)) for k in agents}
+                    c_h = th.zeros((1, args.h_size))
+
+                    if args.tb_log: summary_w.add_scalars('Training', record, global_step)
+                    if args.wandb_log: wandb.log(record)
+
+                    ep_step, ep_reward, ep_cost = 0, 0, 0
+                    observation = _array_to_dict_tensor(agents, deepcopy(env.reset()), device)
+
+                    if eval_ep_count >= 10:
+                        break
+
+
+
+
         # Optimize the policy and value networks
         for k in agents:
             b = buffers[k].sample() 
@@ -185,9 +255,7 @@ if __name__ == "__main__":
 
                 values, _ = critic(b['j_observations'])
                 values = values.squeeze()
-                
-                print(values)
-                print(b['returns'])
+
                 critic_loss = 0.5 * ((values - b['returns']) ** 2).mean()
                 critic_loss = critic_loss * args.v_coef
                
