@@ -59,6 +59,7 @@ class MaWrapper(ABC):
 
         self.agent_ids = [agent.name for agent in self.env.agents]
 
+
         self.steps, self.max_steps = 0, kwargs['max_steps']
         self.ma_threshold = 0.05  # threshold for waypoint reaching
         self.agent_size = 0.1

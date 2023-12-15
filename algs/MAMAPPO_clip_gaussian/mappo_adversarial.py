@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     # Loggers
     run_name = f"{args.env}__{args.tag}__{args.seed}__{int(time.time())}__{np.random.randint(0, 100)}"
-    summary_w, wandb_path = init_loggers(run_name, args)
+
 
     # Torch init and seeding 
     set_seeds(args.seed, args.th_deterministic)
@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     # Environment setup    
     env = env_ids[args.env](args.seed, args.max_steps)
-    agents = env.agent_ids[:env.env_params["num_good"]]
+    agents = env.agent_ids[env.env_params["num_adversaries"]:]
     a_low = {k: space.low for k, space in env.ma_space.items()}
     a_high = {k: space.high for k, space in env.ma_space.items()}
 
@@ -62,19 +62,18 @@ if __name__ == "__main__":
         critics[k] = Critic(env, agents, args.h_size, args.n_hidden).to(device)
         c_optim[k] = optim.Adam(list(critics[k].parameters()), lr=args.critic_lr, eps=1e-5)
         buffers[k] = Buffer(env, agents, args.n_steps, args.max_steps, args.gamma, args.gae, args.gae_lambda, device)
-
     for k in adversary:
         actors_adversary[k] = GaussianActor(env, adversary, args.h_size, args.n_hidden).to(device)
         a_optim_adversary[k] = optim.Adam(list(actors_adversary[k].parameters()), lr=args.actor_lr, eps=1e-5)
         critics_adversary[k] = Critic(env, adversary, args.h_size, args.n_hidden).to(device)
         c_optim_adversary[k] = optim.Adam(list(critics_adversary[k].parameters()), lr=args.critic_lr, eps=1e-5)
-        buffers_adversary[k] = Buffer(env, adversary, args.n_steps, args.max_steps, args.gamma, args.gae,
-                                      args.gae_lambda, device)
+        buffers_adversary[k] = Buffer(env, adversary, args.n_steps, args.max_steps, args.gamma, args.gae,args.gae_lambda, device)
 
     # Training metrics
     global_step, ep_count, eval_step, eval_ep_count, ep_between_eval = 0, 0, 0, 0, 0
     start_time = time.time()
     reward_q, cost_q = deque(maxlen=args.last_n), deque(maxlen=args.last_n)
+    reward_q_adversary, cost_q_adversary = deque(maxlen=args.last_n), deque(maxlen=args.last_n)
 
     n_updates = args.tot_steps // args.batch_size
     for update in range(1, n_updates + 1):
@@ -84,8 +83,12 @@ if __name__ == "__main__":
                 a_opt.param_groups[0]["lr"] = frac * args.actor_lr
                 c_opt.param_groups[0]["lr"] = frac * args.critic_lr
 
+            for a_opt_adversary, c_opt_adversary in zip(a_optim_adversary.values(), c_optim_adversary.values()):
+                a_opt_adversary.param_groups[0]["lr"] = frac * args.actor_lr
+                c_opt_adversary.param_groups[0]["lr"] = frac * args.critic_lr
+
         # Environment reset
-        observation = _array_to_dict_tensor(agents, env.reset(), device)
+        observation = _array_to_dict_tensor(adversary+agents,env.reset(), device)
 
         ma_observation = deepcopy(observation)
         j_observation = {}
@@ -95,14 +98,28 @@ if __name__ == "__main__":
         ma_logprob = {k: th.zeros(args.n_envs) for k in agents}
         ma_step, ma_gamma, ma_reward = {}, {}, {}
 
+        ma_action_adversary = {k: th.zeros((args.n_envs, env.ma_space[k].shape[0])) for k in adversary}
+        ma_mean_adversary = deepcopy(ma_action_adversary)
+        ma_std_adversary = deepcopy(ma_action_adversary)
+        ma_logprob_adversary = {k: th.zeros(args.n_envs) for k in adversary}
+        ma_step_adversary, ma_gamma_adversary, ma_reward_adversary = {}, {}, {}
+
         ma_value = deepcopy(ma_logprob)
         ma_done = {k: th.ones(args.n_envs) for k in agents}
         a_h, a_h_ = [{k: th.zeros((1, args.h_size)) for k in agents} for _ in range(2)]
         c_h, c_h_ = [{k: th.zeros((1, args.h_size)) for k in agents} for _ in range(2)]
 
+
+        ma_value_adversary = deepcopy(ma_logprob_adversary)
+        ma_done_adversary = {k: th.ones(args.n_envs) for k in adversary}
+        a_h_adversary, a_h_adversary_ = [{k: th.zeros((1, args.h_size)) for k in adversary} for _ in range(2)]
+        c_h_adversary, c_h_adversary_ = [{k: th.zeros((1, args.h_size)) for k in adversary} for _ in range(2)]
+
         ma_count = {k: th.zeros(args.n_envs) for k in agents}
+        ma_count_adversary = {k: th.zeros(args.n_envs) for k in adversary}
 
         ep_reward, ep_cost, ep_step, ep_macro = 0, 0, 0, 0
+        ep_reward_adversary, ep_cost_adversary, ep_step_adversary, ep_macro_adversary = 0, 0, 0, 0
         # while any(np.sum(list(ma_count.values())) < args.n_steps):
         while all(np.array(list(ma_count.values())) < args.n_steps):
             # print(np.array(list(ma_count.values())))
@@ -150,6 +167,7 @@ if __name__ == "__main__":
             # print(f"Position agent 2: {np.array(list(observation.values()))[2][0][2:4]}")
 
             observation_, reward, done, info = env.step(_to_dict_clip_array(ma_action, a_low, a_high))
+            print(observation_,reward,done)
 
             ma_done = _array_to_dict_tensor(agents, info['ma_done'], device)
             reward = _array_to_dict_tensor(agents, reward, device)

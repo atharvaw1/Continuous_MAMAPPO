@@ -9,7 +9,7 @@ class Scenario(BaseScenario):
         world = World()
         # set any world properties first
         world.dim_c = 2
-        num_agents = kwargs['num_good']
+        num_agents = kwargs['num_good'] + kwargs['num_adversaries']
         num_adversaries = kwargs['num_adversaries']
         # num_agents = 3
         world.num_agents = num_agents
