@@ -15,5 +15,5 @@ Another change was to remove negative rewards (collisions between agents) from t
 
 ## Continuous Macro-Action Multi-Agent Proximal Policy Optimization (MAMAPPO)
 
-Macro-action-based MAPPO is more challenging than primitive MAPPO as it is hard to determine the agent's trajectories for updates and when to consider a macro-action terminated. This is discussed in detail in the paper https://github.com/atharvaw1/MA_mpe/blob/master/Continuous_Macro_Action_Learning_in_Multi_Agent_RL_Environments.pdf
+Macro-action-based MAPPO is more challenging than primitive MAPPO as it is hard to determine the agent's trajectories for updates and when to consider a macro-action terminated. This is discussed in detail in the paper [https://github.com/atharvaw1/MA_mpe/blob/master/Continuous_Macro_Action_Learning_in_Multi_Agent_RL_Environments.pdf](https://github.com/atharvaw1/Continuous_MAMAPPO/blob/master/Multi_Agent_Reinforcement_Learning_with_Continuous_Macro_Actions.pdf)https://github.com/atharvaw1/Continuous_MAMAPPO/blob/master/Multi_Agent_Reinforcement_Learning_with_Continuous_Macro_Actions.pdf
 
